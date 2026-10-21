@@ -31,3 +31,54 @@ dropbox.*
 # Azure deployment is personal infrastructure, kept out of the repository. It holds
 # subscription and tenant ids and is of no use to anyone else.
 tools/deploy-azure.ps1
+
+# Local development, private files and credentials
+.venv/
+venv/
+.vscode/
+.idea/
+.codex/
+*.code-workspace
+.env
+.env.*
+*.local
+*.log
+*.bak
+*.pem
+*.key
+local/
+private/
+secrets/
+characters/
+portraits/
+.pytest_cache/
+.ruff_cache/
+node_modules/
+
+# Raw rules, homebrew and character exports: conservative default for all JSON.
+# Add a narrowly scoped exception only for reviewed, redistributable source fixtures.
+*.json
+*.jsonl
+*.pdf
+*.7z
+*.rar
+*.tar
+*.gz
+5etools*/
+data/
+rule-data/
+
+# resources contains local generated rules and optional PDF payloads.
+# Allow only the original redistributable source assets; new assets need review.
+/resources/*
+!/resources/pdf-fields.js
+!/resources/logo.png
+!/resources/favicon.ico
+!/resources/favicon-32.png
+!/resources/apple-touch-icon.png
+!/resources/dnd-classes.png
+!/resources/dnd-species.png
+!/resources/dnd-spells.png
+!/resources/dnd-creatures.png
+!/resources/dnd-feats.png
+!/resources/dnd-items.png
