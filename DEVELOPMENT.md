@@ -1,5 +1,10 @@
 # CharacterManager unter Windows 11 entwickeln
 
+**Phase 4:** Revisionssicheres Loeschen mit privatem Papierkorb, automatische
+Dateibackups, globale Theme-Auswahl und gemeinsame JSON-Validierung sind
+implementiert. [Bedienung, Testbefehle und Grenzen](docs/PHASE4.md),
+[Wiederherstellung](docs/STORAGE_RECOVERY.md), [Theme](docs/THEME.md).
+
 **Phase 3 – Frontend:** Die Startseite bietet jetzt die gemeinsame
 Charakterbibliothek; im Creator stehen **Save to Server** und **Save as New on
 Server** bereit. Mit dem Flask-Server starten, damit die API verfuegbar ist.

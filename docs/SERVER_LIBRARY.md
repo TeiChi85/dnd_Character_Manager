@@ -1,5 +1,8 @@
 # Gemeinsame Charakterbibliothek – Frontend (Phase 3)
 
+Phase 4 erweitert diese Bedienung um den Loeschdialog, globale Darstellung und
+Backups: [aktuelle Anleitung](PHASE4.md).
+
 Die Startseite zeigt neben den bisherigen lokalen Dateien eine **Shared character
 library**. Die Eintraege sind nach Aenderungsdatum sortiert, neueste zuerst,
 mit Name, Klasse, Level, Edition und lokal dargestellter Uhrzeit. **Refresh**
@@ -112,7 +115,7 @@ Server-Speichern: nach rein lokalem Speichern kann sie vorsichtshalber weiterhin
 erscheinen. Browser koennen `beforeunload`-Dialoge unterdruecken; es gibt kein
 Autosave und keine Wiederherstellung nach Browserabsturz.
 
-Keine Konten, Rechteverwaltung, Datenbank, Loeschfunktion, Autosave oder
+Keine Konten, Rechteverwaltung, Datenbank, Autosave oder
 Raspberry-Pi-Bereitstellung. Der Server bleibt auf Loopback beschraenkt.
 Regeldaten und private Charaktere bleiben lokal; Tests und Screenshots werden
 nicht als Charakterdateien oder Datensaetze ins Repository aufgenommen.

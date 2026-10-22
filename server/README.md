@@ -1,5 +1,9 @@
 # Lokale Charakterbibliothek – MVP 1, Phase A
 
+**Phase 4:** DELETE mit Revisionspruefung, private Backups/Papierkorb und
+erweiterte Validierung sind hinzugekommen. Siehe [Phase-4-Anleitung](../docs/PHASE4.md)
+und [Speicher/Wiederherstellung](../docs/STORAGE_RECOVERY.md).
+
 Optionales Flask-Backend fuer die bestehende statische Anwendung. Die
 [Frontend-Integration (Phase 3)](../docs/SERVER_LIBRARY.md) verbindet jetzt
 Startbibliothek und explizite Speicheraktionen mit dieser API.
@@ -95,6 +99,7 @@ verwendet diese Endpunkte unveraendert.
 | GET | `/api/characters/{id}` | `200`, vollstaendige Huelle und `ETag: "1"` |
 | POST | `/api/characters` | `201`, neue UUID und Revision 1; Huelle, ETag und Location in der Antwort |
 | PUT | `/api/characters/{id}` | Vollstaendiger Ersatz des Exportobjekts; erfordert `If-Match: "1"`; `200` mit erhoehter Revision und aktuellem ETag |
+| DELETE | `/api/characters/{id}` | Erfordert `If-Match: "1"`; `200` mit `{id, revision, deleted: true}` nach Verschieben in den privaten Papierkorb |
 
 Ein PUT verwendet die zuletzt gelesene Revision als gequoteten If-Match-Wert.
 Fehlt der Header: **428**. Ungueltiger Header: **400**. Veraltete Revision:
@@ -134,7 +139,10 @@ erfolgt in eine temporaere Datei im Speicherordner, mit Flush und `fsync`, dann
 `os.replace`. Bei einem fehlgeschlagenen Ersetzen bleibt der alte Stand erhalten.
 Bei einem Prozessabbruch kann eine `.character-*.tmp` zurueckbleiben; diese wird
 nicht aufgelistet. Keine Garantie fuer Netzlaufwerke, Stromausfallfestigkeit
-oder Wiederherstellung; keine Backups oder Versionshistorie implementiert.
+oder Wiederherstellung nach Datentraegerverlust. Vor PUT wird nun eine private
+Vorversion gesichert; DELETE verschiebt die validierte aktive Datei in den
+Papierkorb. Standard: zehn Vorversionen je ID und kein Ablauf geloeschter Dateien.
+Konfiguration und manuelle Wiederherstellung: [STORAGE_RECOVERY.md](../docs/STORAGE_RECOVERY.md).
 
 Flask liefert nur die vorhandenen sieben HTML-Einstiegsseiten sowie CSS, JS und
 Bildressourcen unter `css/`, `js/`, `resources/` aus, inklusive lokal generierter
@@ -155,6 +163,11 @@ privater Dateien: weiterhin jeden Staging-Diff pruefen.
 ```powershell
 .\.venv\Scripts\python.exe -m unittest server.test_api -v
 ```
+
+Alle Backend-Tests einschliesslich Phase 4:
+`.\.venv\Scripts\python.exe -m unittest discover -s server -t . -v`.
+Die erweiterten Struktur-/Laengenlimits sind in [PHASE4.md](../docs/PHASE4.md)
+dokumentiert; lokale Importe verwenden dieselben Grenzen im Frontend.
 
 Die Suite prueft Anlegen, Auflisten, Laden, Aktualisieren, Persistenz nach
 Neustart, unveraendertes JSON, aeltere/erweiterte Exporte, Unicode, unabhaengige

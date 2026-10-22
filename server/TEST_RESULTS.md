@@ -1,4 +1,38 @@
-# Ausgefuehrte Pruefungen – 22.10.2026
+# Ausgefuehrte Pruefungen
+
+## Phase 4: Hardening (23.10.2026)
+
+- `.\.venv\Scripts\python.exe -m unittest discover -s server -t . -q`:
+  **39 Tests bestanden**, Exitcode 0. Inklusive Papierkorb, Wiederherstellung,
+  Backup-Aufbewahrung, Datei-/Backup-Fehlern, vollem Datentraeger, fehlenden
+  Rechten, beschaedigten Archiven, parallelem Speichern/Loeschen, Hardlinks,
+  Traversal, Ursprungspruefung und Validierungsgrenzen. Windows und Python 3.15.1.
+- `tools/validate_server_frontend.mjs`: **26 Szenarien bestanden**.
+- `tools/validate_theme.mjs`: **14 Szenarien bestanden**, inklusive aller sieben
+  Seiten, OS-Vorgabe, localStorage-Ausfall, Tab-Synchronisierung und simulierter
+  Wiederherstellung nach Browserneustart.
+- `tools/validate_live_library.mjs`: **8 Szenarien gegen die echte Flask-API**
+  auf `127.0.0.1:8001` bestanden, mit eigenem temporaeren Speicher. POST, GET,
+  PUT, Kopie, Save-/Delete-Konflikt, Abbruch ohne DELETE und bestaetigtes DELETE.
+  DOM und Rendering bleiben in diesem Lauf simuliert.
+- Die drei `.mjs`-Dateien wurden durch Import mit der vorhandenen eingebetteten
+  Node-Laufzeit ausgefuehrt. `node` ist nicht im PowerShell-PATH; kein npm-Setup.
+- `cscript.exe //nologo tools\validate.js`: **1513 Checks bestanden, 0 Fehler**,
+  Exitcode 0; **242/242 Subklassen**. Zwei UI-Annahmen zum frueheren Sheet-Theme-
+  Knopf wurden auf die globale Darstellung aktualisiert, keine Rechenpruefung
+  entfernt. Homebrew mangels Buch uebersprungen.
+- `python -m server.restore ARCHIVDATEI` gegen den separaten, gestoppten
+  Test-Speicher ausgefuehrt: urspruengliche ID wiederhergestellt, Revision von 3
+  auf **4** erhoeht, GET danach erfolgreich. Das Originalarchiv blieb erhalten.
+- `pip check`: keine defekten Abhaengigkeiten. `git diff --check`: bestanden.
+
+Nicht ausgefuehrt: neue visuelle Browser-/Mobilpruefung, echter Browserneustart,
+OS-Dateipicker, PDF-Export, Linux-/ARM-/Pi-Lauf, Netzlaufwerk und Stromausfalltest.
+Die Browser-Inventarisierung zeigte keine verbundenen Browser; der integrierte
+Browser war ebenfalls nicht verfuegbar. Daher gibt es fuer Phase 4 keine neuen
+Screenshots und keine als bestanden ausgegebene Sichtpruefung.
+Alle neuen Charaktere waren synthetisch; Regeldaten wurden nur von der lokalen
+Windows-Regressionssuite gelesen und weder heruntergeladen noch hochgeladen.
 
 ## Phase 3: Frontend-Integration (22./23.10.2026)
 
