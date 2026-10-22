@@ -1,7 +1,6 @@
 """Local Flask API. Run from the repository root: python -m server.app."""
 
 import json
-import math
 import os
 from pathlib import Path
 import re
@@ -9,67 +8,14 @@ import re
 from flask import Flask, abort, jsonify, request, send_from_directory, url_for
 from werkzeug.exceptions import HTTPException
 
-from .storage import Conflict, StorageBusy, Store
+from .storage import CharacterNotFound, Conflict, StorageBusy, Store
+from .validation import strict_json, validate_character
 
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_MAX_BYTES = 2 * 1024 * 1024
 PAGES = {"index.html", "classes.html", "creatures.html", "feats.html",
          "items.html", "races.html", "spells.html"}
-# Types describe the export structure, not D&D rules. Optional keys stay optional.
-STRINGS = {"name", "bgCustomName", "bgCustomDesc"}
-NULLABLE_STRINGS = {"edition", "className", "source", "slug", "subclassName",
-                    "raceLineage", "portrait"}
-OBJECTS = {"choices", "bgChoices", "details", "raceChoices", "abilities",
-           "equipment", "spells", "customProficiencies", "sheet"}
-ARRAYS = {"customLanguages", "customDefences"}
-
-
-def validate_character(value):
-    if not isinstance(value, dict) or value.get("_app") != "dnd-cc":
-        raise ValueError("Expected a dnd-cc character object")
-    if type(value.get("_v")) is not int or value["_v"] != 1:
-        raise ValueError("Expected character format version 1")
-    for key, item in value.items():
-        if key in STRINGS and not isinstance(item, str):
-            raise ValueError(key + " must be a string")
-        if key in NULLABLE_STRINGS and item is not None and not isinstance(item, str):
-            raise ValueError(key + " must be a string or null")
-        if key in OBJECTS and not isinstance(item, dict):
-            raise ValueError(key + " must be an object")
-        if key in ARRAYS and not isinstance(item, list):
-            raise ValueError(key + " must be an array")
-        if key in {"background", "race"} and item is not None and not isinstance(item, dict):
-            raise ValueError(key + " must be an object or null")
-        if key == "bgIsCustom" and type(item) is not bool:
-            raise ValueError("bgIsCustom must be a boolean")
-        if key == "level" and (type(item) is not int or not 1 <= item <= 20):
-            raise ValueError("level must be an integer from 1 to 20")
-        if key in {"hdFaces", "manualHp"} and item is not None and type(item) not in {int, float}:
-            raise ValueError(key + " must be a number or null")
-    # Bound nesting, reject non-finite numbers (including overflowing exponents).
-    def check(item, depth=0):
-        if depth > 64:
-            raise ValueError("JSON nesting exceeds 64 levels")
-        if isinstance(item, float) and not math.isfinite(item):
-            raise ValueError("JSON numbers must be finite")
-        if isinstance(item, dict):
-            for child in item.values():
-                check(child, depth + 1)
-        elif isinstance(item, list):
-            for child in item:
-                check(child, depth + 1)
-    check(value)
-    return value
-
-
-def unique_object(pairs):
-    result = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError("Duplicate JSON key: " + key)
-        result[key] = value
-    return result
 
 
 def create_app(config=None):
@@ -79,13 +25,20 @@ def create_app(config=None):
         CHARACTER_STORAGE_DIR=os.environ.get(
             "CC_CHARACTER_STORAGE", str(Path.home() / ".character-manager" / "characters")),
         TRUSTED_HOSTS=["127.0.0.1", "localhost", "[::1]"],
+        CHARACTER_BACKUP_COUNT=os.environ.get("CC_CHARACTER_BACKUP_COUNT", "10"),
+        CHARACTER_TRASH_DAYS=os.environ.get("CC_CHARACTER_TRASH_DAYS"),
     )
     if config:
         app.config.update(config)
     directory = Path(app.config["CHARACTER_STORAGE_DIR"]).expanduser().resolve()
     if directory == ROOT or ROOT in directory.parents:
         raise ValueError("Character storage must be outside the repository")
-    store = Store(directory, app.config["MAX_CONTENT_LENGTH"])
+    backup_count = int(app.config["CHARACTER_BACKUP_COUNT"])
+    trash_days = app.config["CHARACTER_TRASH_DAYS"]
+    trash_days = int(trash_days) if trash_days is not None else None
+    if not 1 <= backup_count <= 1000 or trash_days is not None and trash_days < 1:
+        raise ValueError("Backup count must be 1..1000; trash days must be positive or unset")
+    store = Store(directory, app.config["MAX_CONTENT_LENGTH"], backup_count, trash_days)
     app.extensions["character_store"] = store
 
     @app.errorhandler(HTTPException)
@@ -98,6 +51,7 @@ def create_app(config=None):
 
     @app.errorhandler(OSError)
     @app.errorhandler(ValueError)
+    @app.errorhandler(CharacterNotFound)
     def storage_error(error):
         app.logger.error("Character storage operation failed", exc_info=True)
         return jsonify(error="Character storage unavailable"), 500
@@ -109,19 +63,29 @@ def create_app(config=None):
             response.headers["Cache-Control"] = "no-store"
         return response
 
+    @app.before_request
+    def same_origin_writes():
+        if request.path.startswith("/api/") and request.method in {"POST", "PUT", "DELETE"}:
+            origin = request.headers.get("Origin")
+            if request.headers.get("Sec-Fetch-Site") == "cross-site" or origin and origin != request.host_url.rstrip("/"):
+                abort(403, description="Cross-origin character changes are not allowed")
+
     def character_body():
         if not request.is_json:
             abort(415, description="Use Content-Type: application/json")
         try:
-            value = json.loads(request.get_data().decode("utf-8"),
-                               object_pairs_hook=unique_object)
+            value = strict_json(request.get_data().decode("utf-8"))
             validate_character(value)
             # Keep the canonical file bounded even for UTF-8/escape expansion.
             if len(json.dumps(value, ensure_ascii=True).encode("utf-8")) > store.max_bytes:
                 abort(413)
             return value
-        except (ValueError, UnicodeError, RecursionError):
-            abort(400, description="Invalid JSON or character structure")
+        except json.JSONDecodeError:
+            abort(400, description="Invalid JSON")
+        except (UnicodeError, RecursionError):
+            abort(400, description="Invalid JSON encoding or nesting")
+        except ValueError as error:
+            abort(400, description=str(error))
 
     def record_response(record, status=200):
         response = jsonify(record)
@@ -145,7 +109,7 @@ def create_app(config=None):
         try:
             with store.locked():
                 record = store.read(identifier)
-        except FileNotFoundError:
+        except CharacterNotFound:
             abort(404)
         return record_response(record)
 
@@ -153,21 +117,40 @@ def create_app(config=None):
     def create_character():
         return record_response(store.write(None, character_body()), 201)
 
-    @app.put("/api/characters/<identifier>")
-    def update_character(identifier):
+    def expected_revision():
         expected = request.headers.get("If-Match")
         if expected is None:
             abort(428, description='If-Match with the revision ETag is required')
         if not re.fullmatch(r'"[1-9][0-9]{0,15}"', expected):
             abort(400, description='If-Match must contain one quoted revision, e.g. "1"')
+        return int(expected[1:-1])
+
+    @app.put("/api/characters/<identifier>")
+    def update_character(identifier):
+        expected = expected_revision()
         character = character_body()
         try:
-            record = store.write(identifier, character, int(expected[1:-1]))
-        except FileNotFoundError:
+            record = store.write(identifier, character, expected)
+        except CharacterNotFound:
             abort(404)
         except Conflict as error:
             return jsonify(error="Revision conflict", current_revision=error.revision), 409
         return record_response(record)
+
+    @app.delete("/api/characters/<identifier>")
+    def delete_character(identifier):
+        expected = expected_revision()
+        try:
+            record = store.delete(identifier, expected)
+        except CharacterNotFound:
+            abort(404)
+        except Conflict as error:
+            return jsonify(error="Revision conflict", current_revision=error.revision), 409
+        return jsonify(id=record["id"], revision=record["revision"], deleted=True)
+
+    @app.route("/api/characters/<path:invalid>", methods=["PUT", "DELETE"])
+    def invalid_character_path(invalid):
+        abort(404)
 
     @app.get("/")
     @app.get("/<path:filename>")

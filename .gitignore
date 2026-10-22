@@ -58,6 +58,9 @@ node_modules/
 /server/storage/
 /instance/
 *.json.tmp
+backups/
+trash/
+character-storage/
 
 # Raw rules, homebrew and character exports: conservative default for all JSON.
 # Add a narrowly scoped exception only for reviewed, redistributable source fixtures.
