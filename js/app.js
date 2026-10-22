@@ -27,7 +27,6 @@
     var cs=$("classSelect");if(cs)cs.value="";
     var am=$("abilityMethod");if(am)am.value="pointbuy";
     var hr=$("hpEditRow");if(hr)hr.classList.add("hidden");
-    document.body.classList.remove("dark");
     if(serverLibrary)serverLibrary.detach();
     populateLevels();
     $("featTitle").textContent="Class Features";
@@ -262,10 +261,8 @@
     var labels={"class":"1 · Class & Features",background:"2 · Background & Details",species:"3 · Species",abilities:"4 · Ability Scores",equipment:"5 · Equipment",spells:"6 · Spells",sheet:"7 · Character Sheet"};
     var mb=$("menuBtn");if(mb)mb.innerHTML="☰";
     var sm=$("stepsMenu");if(sm)sm.classList.remove("open");
-    var dk=$("darkToggle");if(dk){dk.classList.toggle("hidden",step!=="sheet");dk.innerHTML=state.sheet.dark?ICON.sun:ICON.moon;}
     var sb=$("saveBtn");if(sb){sb.classList.toggle("hidden",!state.className);sb.innerHTML=ICON.save;}
     var pb=$("pdfBtn");if(pb){pb.classList.toggle("hidden",!state.className);pb.innerHTML=ICON.pdf;}
-    document.body.classList.toggle("dark",step==="sheet"&&!!state.sheet.dark);
     var wrap=document.querySelector(".wrap");if(wrap)wrap.classList.toggle("wide",step==="sheet");
     render();               // always refresh the page we're navigating to with the latest state
     window.scrollTo(0,0);
@@ -4946,7 +4943,6 @@
     if(m)m.classList.remove("open");
   });
   $("saveBtn").addEventListener("click",function(){saveChar();});
-  $("darkToggle").addEventListener("click",function(){state.sheet.dark=!state.sheet.dark;document.body.classList.toggle("dark",state.sheet.dark);this.innerHTML=state.sheet.dark?ICON.sun:ICON.moon;});
   Array.prototype.forEach.call(document.querySelectorAll(".step"),function(b){b.addEventListener("click",function(){setStep(b.getAttribute("data-step"));});});
   $("toBackground").addEventListener("click",function(){setStep("background");});
   $("toClass").addEventListener("click",function(){setStep("class");});

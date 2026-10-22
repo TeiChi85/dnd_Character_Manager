@@ -1078,8 +1078,8 @@ checkTrue("  app.js binds listeners directly",_bound.length>20);
 var _absent=[];
 for(var _i=0;_i<_bound.length;_i++)if(!_ids[_bound[_i]])_absent.push(_bound[_i]);
 check("  every directly bound id is in the markup",_absent.join(", ")||"none","none");
-// the save control moved out of the menu and next to the theme toggle
-checkTrue("  a save button exists beside the theme toggle",!!_ids["saveBtn"]&&!!_ids["darkToggle"]);
+// Save stays in the builder; the global theme control is available on every screen.
+checkTrue("  save and global theme controls exist",!!_ids["saveBtn"]&&!!_ids["darkToggle"]);
 checkTrue("  the old menu entries are gone",!_ids["btnSave"]&&!_ids["btnSaveAs"]);
 checkTrue("  ...and nothing still refers to them",_app.indexOf('$("btnSave")')<0&&_app.indexOf('$("btnSaveAs")')<0);
 checkTrue("  loading lives on the start page only",!!_ids["btnLoadStart"]&&!_ids["btnLoad"]);
@@ -1096,7 +1096,8 @@ var _emoji=["&#128190;","&#128196;","&#127769;","&#9733;","&#9734;"];
 var _left=[];
 for(var _e=0;_e<_emoji.length;_e++)if(_html.indexOf(_emoji[_e])>=0||_app.indexOf(_emoji[_e])>=0)_left.push(_emoji[_e]);
 check("  no coloured emoji left on the icon buttons",_left.join(", ")||"none","none");
-checkTrue("  the theme toggle swaps between two drawn icons",_app.indexOf("ICON.sun")>=0&&_app.indexOf("ICON.moon")>=0);
+var _theme=readFile(ROOT+"js\\theme.js");
+checkTrue("  the global theme toggle labels its action and state",_theme.indexOf("Light mode")>=0&&_theme.indexOf("Dark mode")>=0&&_theme.indexOf("aria-pressed")>=0);
 checkTrue("  inspiration uses the same star",_app.indexOf("ICON.starOn")>=0);
 checkTrue("  the PDF button keeps its icon while building",_app.indexOf('classList.add("busy")')>=0&&_app.indexOf("btn.textContent")<0);
 checkTrue("  saving asks before it overwrites",_app.indexOf("Overwrite ")>=0&&_app.indexOf("confirm(msg)")>=0);
