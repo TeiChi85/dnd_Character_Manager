@@ -10,10 +10,12 @@
 .global-theme-bar{position:sticky;top:0;z-index:80;display:flex;justify-content:flex-end;padding:8px 22px;background:var(--bg);border-bottom:1px solid var(--line)}
 .global-theme-bar .btn{min-height:36px;min-width:96px}
 body.dark .btn:not(.ghost){background:#245fa8;color:#fff}
-body.dark .sp-seg button.on,body.dark .sp-lchip.on,body.dark .cls-lvl{color:#171717}
+body.dark .sp-seg button.on,body.dark .sp-lchip.on,body.dark .cls-lvl,body.dark .class-emblem{color:#171717}
 body.dark .inset{background:var(--head)}
 body.dark blockquote.ent{color:var(--ink)}
 body.dark .rar-common{color:#ddd}body.dark .rar-uncommon{color:#7fd18a}body.dark .rar-rare{color:#8fb6ec}body.dark .rar-veryrare{color:#c4a3ff}body.dark .rar-legendary,body.dark .rar-artifact{color:#ffd27c}
+@media(min-width:901px){.sp-wrap .sp-detail{top:66px;max-height:calc(100vh - 80px)}}
+@media(max-width:900px){.sp-wrap .sp-detail{top:53px;max-height:calc(100vh - 53px)}}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45;-webkit-font-smoothing:antialiased}
@@ -90,6 +92,18 @@ body.dark .src-hb{color:#d5ab5e}
 .server-conflict p{margin-top:0}
 .server-conflict .btn{margin:4px 4px 0 0}
 .server-character{width:100%;text-align:left;color:var(--ink);font:inherit;padding-right:11px}
+.server-row{display:flex;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+.server-row .server-character{min-width:0;flex:1;border:0;border-radius:0;box-shadow:none}
+.server-delete{flex:0 0 44px;min-height:44px;cursor:pointer;border:0;border-left:1px solid var(--line);background:transparent;color:var(--muted)}
+.server-delete:hover{color:var(--accent);background:var(--head)}
+.server-delete:focus-visible{outline:2px solid var(--focus);outline-offset:-3px}
+.server-delete:disabled{opacity:.6;cursor:wait}
+#deleteDialog{position:fixed;margin:auto;max-width:440px;width:calc(100% - 32px);padding:24px;color:var(--ink);background:var(--panel);border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);overflow-wrap:anywhere}
+#deleteDialog::backdrop{background:rgba(0,0,0,.6)}
+#deleteDialog h2{margin:0 28px 12px 0;font-size:21px}
+.dialog-close{position:absolute;right:8px;top:8px;width:36px;height:36px;border:0;background:transparent;color:var(--ink);font-size:24px;cursor:pointer}
+.dialog-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:20px}
+.dialog-actions .btn{min-height:44px;white-space:normal}
 .server-character .rc-sub,.server-character .rc-ago{white-space:normal;overflow-wrap:anywhere}
 .server-actions .btn:disabled,.server-conflict .btn:disabled,.server-character:disabled{opacity:.6;cursor:wait}
 @media(max-width:560px){.server-actions .btn{flex:1;white-space:normal}.server-conflict .btn{white-space:normal}}

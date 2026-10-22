@@ -222,11 +222,11 @@
     }
     if(t==="quote"){return "<blockquote class='ent'>"+(e.entries||[]).map(renderEntry).join("")+"</blockquote>";}
     if(t==="options"){
-      var note=e.count?"<p class='tag-note'>Choose "+e.count+".</p>":"";
+      var note=e.count?"<p class='tag-note'>Choose "+esc(e.count)+".</p>":"";
       return note+(e.entries||[]).map(renderEntry).join("");
     }
     if(t==="abilityDc"){
-      return "<p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your "+((e.attributes||[]).join(" or ")||"spellcasting ability")+" modifier</p>";
+      return "<p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your "+esc((e.attributes||[]).join(" or ")||"spellcasting ability")+" modifier</p>";
     }
     if(t==="refClassFeature"||t==="refSubclassFeature"){
       var key=e.classFeature||e.subclassFeature;
@@ -2308,7 +2308,7 @@
     inv.forEach(function(it,i){
       var att=itemAttune(it),info=itemInfo(it.name,it.source),full=itemEntriesFull(it),hasDesc=full.length;
       var meta=it.cat+(it.rarity&&it.rarity!=="none"?" · "+it.rarity:"")+(it.dmg?" · "+it.dmg+" "+dmgAbbr(it.dmgType):"")+(it.ac&&it.armorKind!=="shield"?" · AC "+it.ac:"")+(it.armorKind==="shield"?" · +"+(it.ac||2)+" AC":"")+(att?" · "+attuneNote(att):"");
-      var ctrl='<input type="number" min="1" class="inv-qty" data-i="'+i+'" value="'+(it.qty||1)+'">';
+      var ctrl='<input type="number" min="1" class="inv-qty" data-i="'+i+'" value="'+esc(it.qty||1)+'">';
       var eqi=equipInfo(it);
       if(eqi.ok){
         ctrl+='<button class="equip-btn'+(it.equipped?" on":"")+'" data-i="'+i+'">'+eqi.verb+"</button>";
@@ -3940,8 +3940,8 @@
         var badge=(att&&it.attuned)?' <span class="attune-star">&#10022; attuned</span>':"";
         var info=itemInfo(it.name,it.source),full=itemEntriesFull(it),hasDesc=full.length;
         var meta=it.cat+(it.dmg?" · "+it.dmg+" "+(it.dmgType||""):"")+(it.ac&&it.armorKind!=="shield"?" · AC "+it.ac:"")+(it.armorKind==="shield"?" · +"+(it.ac||2)+" AC":"")+(it.rarity&&it.rarity!=="none"?" · "+it.rarity:"")+(att?" · "+attuneNote(att):"");
-        var qb=(it.qty>1?'<span class="qty-badge">&times;'+it.qty+"</span> ":"");
-        var ctrl='<input type="number" min="1" class="sh-qty" data-i="'+i+'" title="Quantity" value="'+(it.qty||1)+'">';
+        var qb=(it.qty>1?'<span class="qty-badge">&times;'+esc(it.qty)+"</span> ":"");
+        var ctrl='<input type="number" min="1" class="sh-qty" data-i="'+i+'" title="Quantity" value="'+esc(it.qty||1)+'">';
         var ra=resolveArmor(it);
         var eqi=equipInfo(it);
         if(eqi.ok)ctrl+='<button class="equip-btn sh-equip'+(it.equipped?" on":"")+'" data-i="'+i+'">'+eqi.verb+"</button>";
@@ -4362,6 +4362,8 @@
   }
   function loadCharObj(o,fromServer){
     if(!o||o._app!=="dnd-cc"){alert("That doesn't look like a saved character file.");return;}
+    if(!window.CCCharacterJSON)throw new Error("Character validation unavailable. Reload the application before importing.");
+    window.CCCharacterJSON.validate(o);
     // Always restore onto fresh defaults, including nested fields in older saves.
     function merge(base,value){
       if(!base||!value||typeof base!=="object"||typeof value!=="object"||Array.isArray(base)||Array.isArray(value))return value;
@@ -4392,13 +4394,16 @@
     rcRemember(charFileHandle);        // a no-op when the file came through the plain input
   }
   function loadCharFile(file,handle){
+    if(file.size>2097152){alert("Character file exceeds the 2 MiB limit. Your current character was kept.");return;}
     var rd=new FileReader();
     rd.onload=function(){try{
-      var value=JSON.parse(rd.result);
+      if(!window.CCCharacterJSON)throw new Error("Character validation unavailable. Reload the application before importing.");
+      var value=window.CCCharacterJSON.parse(rd.result);
       if(!value||value._app!=="dnd-cc"){alert("That doesn't look like a saved character file.");return;}
       if(serverLibrary&&!serverLibrary.canLeave())return;
       charFileHandle=handle||null;loadCharObj(value);
     }catch(e){alert("Could not read file: "+(e.message||e));}};
+    rd.onerror=function(){alert("Could not read the character file. Your current character was kept.");};
     rd.readAsText(file);
   }
 
@@ -4409,6 +4414,25 @@
     serverLibrary=window.CCServerLibrary.create({
       serialize:serializeChar,
       confirm:function(message){return confirm(message);},
+      confirmDelete:function(item){
+        return new Promise(function(resolve){
+          var dialog=$("deleteDialog"),settled=false;
+          setText("deleteCharacterName",item.name||"Unnamed character");
+          function finish(confirmed){
+            if(settled)return;settled=true;
+            if(dialog.open)dialog.close();
+            dialog.oncancel=dialog.onclose=dialog.onclick=null;
+            $("deleteCancel").onclick=$("deleteClose").onclick=$("deleteConfirm").onclick=null;
+            resolve(confirmed);
+          }
+          $("deleteCancel").onclick=$("deleteClose").onclick=function(){finish(false);};
+          $("deleteConfirm").onclick=function(){finish(true);};
+          dialog.oncancel=function(event){event.preventDefault();finish(false);};
+          dialog.onclose=function(){finish(false);};
+          dialog.onclick=function(event){if(event.target===dialog)finish(false);};
+          dialog.showModal();$("deleteCancel").focus();
+        });
+      },
       prepare:function(character){
         return new Promise(function(resolve,reject){
           if(!character.slug){resolve();return;}
@@ -4443,6 +4467,7 @@
         setText("serverListStatus",message);
         var host=$("serverCharacterList");host.innerHTML="";
         items.forEach(function(item){
+          var row=document.createElement("div");row.className="server-row";
           var button=document.createElement("button");button.type="button";button.className="rc server-character";
           var title=document.createElement("span");title.className="rc-name";title.textContent=item.name||"Unnamed character";
           var summary=document.createElement("span");summary.className="rc-sub";
@@ -4453,8 +4478,15 @@
           var text=document.createElement("span");text.className="rc-txt";
           text.appendChild(title);text.appendChild(summary);text.appendChild(date);button.appendChild(text);
           button.disabled=serverLibrary?serverLibrary.isBusy():false;
-          button.addEventListener("click",function(){serverLibrary.open(item.id);});host.appendChild(button);
+          button.addEventListener("click",function(){serverLibrary.open(item.id);});row.appendChild(button);
+          var remove=document.createElement("button");remove.type="button";remove.className="server-delete";
+          remove.setAttribute("aria-label","Delete character "+(item.name||"Unnamed character"));remove.title="Delete character";
+          remove.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7"/></svg>';
+          remove.disabled=button.disabled;
+          remove.addEventListener("click",function(event){event.stopPropagation();serverLibrary.remove(item);});
+          row.appendChild(remove);host.appendChild(row);
         });
+        if(message&&message.indexOf("Deleted ")===0)$("serverRefresh").focus();
       }
     });
     $("serverRefresh").addEventListener("click",function(){serverLibrary.refresh();});

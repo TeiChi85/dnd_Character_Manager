@@ -5,42 +5,7 @@
   function object(o){return !!o&&typeof o==="object"&&!Array.isArray(o);}
   function invalid(){throw new Error("Invalid response from the character server. Your current character was kept.");}
   function validateCharacter(o){
-    if(!object(o)||o._app!=="dnd-cc"||o._v!==1)invalid();
-    function walk(v,depth){
-      if(depth>64)invalid();
-      if(typeof v==="number"&&!isFinite(v))invalid();
-      if(v&&typeof v==="object")Object.keys(v).forEach(function(k){
-        if(k==="__proto__"||k==="constructor"||k==="prototype")invalid();
-        walk(v[k],depth+1);
-      });
-    }
-    walk(o,0);
-    var defaults={name:"string",bgCustomName:"string",bgCustomDesc:"string",
-      edition:"nullable",className:"nullable",source:"nullable",slug:"nullable",
-      subclassName:"nullable",raceLineage:"nullable",portrait:"nullable",
-      choices:"object",bgChoices:"object",details:"object",raceChoices:"object",
-      abilities:"object",equipment:"object",spells:"object",sheet:"object",
-      customProficiencies:"object",customLanguages:"array",customDefences:"array"};
-    Object.keys(defaults).forEach(function(k){
-      if(o[k]===undefined)return;
-      var t=defaults[k],v=o[k];
-      if(t==="string"&&typeof v!=="string"||t==="nullable"&&v!==null&&typeof v!=="string"||
-         t==="object"&&!object(v)||t==="array"&&!Array.isArray(v))invalid();
-    });
-    ["background","race"].forEach(function(k){if(o[k]!=null&&!object(o[k]))invalid();});
-    ["hdFaces","manualHp"].forEach(function(k){if(o[k]!=null&&typeof o[k]!=="number")invalid();});
-    if(o.bgIsCustom!==undefined&&typeof o.bgIsCustom!=="boolean")invalid();
-    if(o.level!==undefined&&(typeof o.level!=="number"||o.level%1||o.level<1||o.level>20))invalid();
-    if(o.slug&&!/^[a-z0-9_-]+$/i.test(o.slug))invalid();
-    // Portraits from processPortrait() are PNG data URLs; never accept markup/URLs.
-    if(o.portrait&&!/^data:image\/png;base64,[a-z0-9+/=]+$/i.test(o.portrait))invalid();
-    var arrays={equipment:["inventory"],spells:["cantrips","spells"],
-      customProficiencies:["armor","weapons","tools"]};
-    Object.keys(arrays).forEach(function(k){
-      if(!o[k])return;
-      arrays[k].forEach(function(a){if(o[k][a]!==undefined&&!Array.isArray(o[k][a]))invalid();});
-    });
-    return o;
+    try{return root.CCCharacterJSON.validate(o);}catch(error){invalid();}
   }
   function validateMeta(o){
     if(!object(o)||typeof o.id!=="string"||!UUID.test(o.id)||
@@ -49,7 +14,7 @@
     return o;
   }
   function create(options){
-    var identity=null,busy=false,baseline=JSON.stringify(options.serialize()),listGeneration=0;
+    var identity=null,busy=false,baseline=JSON.stringify(options.serialize()),listGeneration=0,items=[];
     var supported=!!(root.fetch&&root.Promise&&root.AbortController&&
       root.location&&/^https?:$/.test(root.location.protocol));
     function dirty(){return JSON.stringify(options.serialize())!==baseline;}
@@ -85,10 +50,10 @@
       if(writing)message+=" The save result may be unknown. Check the library before trying again; no automatic retry was made.";
       status(message);
     }
-    function refresh(){
+    function refresh(successMessage){
       var generation=++listGeneration;
       if(!supported){options.onList([],"Start Flask and open http://127.0.0.1:8000/ to use the server library. Local character files still work.");return;}
-      options.onList([],"Loading server library…");
+      options.onList(items,successMessage||"Loading server library…");
       return request("","GET").then(function(value){
         if(!object(value)||!Array.isArray(value.characters))invalid();
         value.characters.forEach(function(item){
@@ -97,10 +62,10 @@
           if(item.level!=null&&(typeof item.level!=="number"||item.level%1||item.level<1||item.level>20))invalid();
         });
         value.characters.sort(function(a,b){return Date.parse(b.updated_at)-Date.parse(a.updated_at);});
-        if(generation===listGeneration)options.onList(value.characters,value.characters.length?"":"No characters saved on the server yet.");
+        if(generation===listGeneration){items=value.characters;options.onList(items,successMessage||(items.length?"":"No characters saved on the server yet."));}
       })["catch"](function(error){
         if(generation!==listGeneration)return;
-        options.onList([],error.message&&error.message.indexOf("Invalid response")===0?
+        options.onList(items,successMessage?successMessage+" Refresh failed; choose Refresh to reload the library.":error.message&&error.message.indexOf("Invalid response")===0?
           "The server returned an invalid library. Your current character was kept.":
           "Could not load the server library. Check that Flask is running, then choose Refresh.");
       });
@@ -123,7 +88,9 @@
     }
     function save(asNew){
       if(!supported||busy)return;
-      var snapshot=JSON.stringify(options.serialize()),current=identity;
+      var character=options.serialize();
+      try{root.CCCharacterJSON.validate(character);}catch(error){status(error.message);return;}
+      var snapshot=JSON.stringify(character),current=identity;
       setBusy(true);status("Saving to server…");
       var updating=current&&!asNew;
       return request(updating?"/"+current.id:"",updating?"PUT":"POST",snapshot,updating?current.revision:null).then(function(record){
@@ -135,8 +102,29 @@
         refresh();
       })["catch"](function(error){failure(error,true);}).then(function(){setBusy(false);});
     }
+    function remove(item){
+      if(!supported||busy)return;
+      try{validateMeta(item);}catch(error){status(error.message);return;}
+      setBusy(true);
+      return options.confirmDelete(item).then(function(confirmed){
+        if(!confirmed){status("Deletion cancelled.");return;}
+        status("Deleting character…");
+        return request("/"+item.id,"DELETE",undefined,item.revision).then(function(record){
+          if(!object(record)||record.deleted!==true||record.id!==item.id||record.revision!==item.revision)invalid();
+          if(identity&&identity.id===item.id){identity=null;baseline=null;}
+          items=items.filter(function(entry){return entry.id!==item.id;});
+          var message='Deleted "'+(item.name||"Unnamed character")+'". Moved to the server trash.';
+          status(message);return refresh(message);
+        });
+      })["catch"](function(error){
+        var message=error.status===409?"Character changed since this list was loaded. Nothing was deleted. Refresh the library before deleting again.":
+          error.status===404?"Character is no longer on the server. Refresh the library.":
+          "Could not confirm deletion. Refresh the library before trying again; no automatic retry was made.";
+        options.onList(items,message);status(message);
+      }).then(function(){setBusy(false);});
+    }
     setBusy(false);
-    return {refresh:refresh,open:open,save:save,canLeave:canLeave,detach:detach,
+    return {refresh:refresh,open:open,save:save,remove:remove,canLeave:canLeave,detach:detach,
       dirty:dirty,isBusy:function(){return busy;},reload:function(){if(identity)return open(identity.id);}};
   }
   root.CCServerLibrary={create:create,validateCharacter:validateCharacter};
