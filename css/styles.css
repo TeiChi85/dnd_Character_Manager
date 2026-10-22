@@ -71,6 +71,19 @@ body.dark .src-hb{color:#d5ab5e}
 .rc:hover .rc-x,.rc:focus .rc-x{opacity:1}
 .rc-x:hover{background:var(--accent);color:#fff}
 .recent-note{margin-top:8px;font-size:11px;color:var(--muted)}
+.server-library-head,.server-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.server-library-head{justify-content:space-between}
+.server-library-head h2{margin:0}
+.server-status{font-size:13px;color:var(--muted);margin:8px 0;overflow-wrap:anywhere}
+.server-tools{margin-bottom:18px;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.server-status:empty{display:none}
+.server-conflict{margin-top:10px;padding:12px;border:1px solid var(--accent);border-radius:6px}
+.server-conflict p{margin-top:0}
+.server-conflict .btn{margin:4px 4px 0 0}
+.server-character{width:100%;text-align:left;color:var(--ink);font:inherit;padding-right:11px}
+.server-character .rc-sub,.server-character .rc-ago{white-space:normal;overflow-wrap:anywhere}
+.server-actions .btn:disabled,.server-conflict .btn:disabled,.server-character:disabled{opacity:.6;cursor:wait}
+@media(max-width:560px){.server-actions .btn{flex:1;white-space:normal}.server-conflict .btn{white-space:normal}}
 .edition-load span{color:var(--muted);font-size:14px}
 /* ---------- rules-reference tiles on the opening screen ----------
    The opening screen is a narrow form column, but these four are a browsing area, so

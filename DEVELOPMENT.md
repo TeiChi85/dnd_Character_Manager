@@ -1,5 +1,10 @@
 # CharacterManager unter Windows 11 entwickeln
 
+**Phase 3 – Frontend:** Die Startseite bietet jetzt die gemeinsame
+Charakterbibliothek; im Creator stehen **Save to Server** und **Save as New on
+Server** bereit. Mit dem Flask-Server starten, damit die API verfuegbar ist.
+[Startbefehle, Bedienung, manuelle Abnahme und Tests](docs/SERVER_LIBRARY.md).
+
 **Erweiterung MVP 1, Phase A:** Fuer die optionale lokale Charakterbibliothek
 gibt es jetzt ein Flask-Backend. Windows-Startbefehle, Speicherpfad, API und
 Tests stehen in [server/README.md](server/README.md). Der folgende bisherige
@@ -29,8 +34,10 @@ git --version
 py -3 --version
 ```
 
-Für die Anwendung sind weder Node.js, npm, zusätzliche pip-Pakete noch ein
-OpenAI-API-Schlüssel erforderlich. Codex ist das Entwicklungswerkzeug.
+Für den reinen Offline-Betrieb sind weder Node.js, npm, zusätzliche pip-Pakete
+noch ein OpenAI-API-Schlüssel erforderlich. Die optionale Serverbibliothek
+benötigt Flask; der zusätzliche Frontend-Test eine Node-Laufzeit, ohne npm-Pakete.
+Codex ist das Entwicklungswerkzeug.
 
 ## 2. Repository klonen und in VS Code öffnen
 
@@ -127,8 +134,10 @@ if ($LASTEXITCODE -ne 0) { throw "Regressionstest fehlgeschlagen: Ausgabe prüfe
 Die Suite nutzt Windows-spezifische ActiveX-/Dateisystemobjekte und einen
 simulierten DOM. `node tools/validate.js` ist kein Ersatz. Ohne lokale Daten
 bricht sie beim Laden ab. In Linux-basierten Cloud-Umgebungen ist sie nicht
-unverändert ausführbar. Hier wurden weder die Datengenerierung mit echten
-Regeldaten noch die Windows-Tests ausgeführt.
+unverändert ausführbar. Die ursprüngliche Vorbereitung führte weder eine
+Datengenerierung noch Windows-Tests aus. Die später tatsächlich ausgeführten
+Backend-, Frontend- und Windows-Läufe stehen in
+[server/TEST_RESULTS.md](server/TEST_RESULTS.md).
 
 Im Browser zusätzlich einen Charakter erstellen, als JSON außerhalb des
 Repos speichern, wieder laden und die Referenzseiten prüfen. PDF-Export ist

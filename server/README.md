@@ -1,7 +1,9 @@
 # Lokale Charakterbibliothek – MVP 1, Phase A
 
-Optionales Flask-Backend fuer die bestehende statische Anwendung. Keine
-Frontend-Anbindung, Benutzerkonten, Datenbank oder Pi-Bereitstellung. Die
+Optionales Flask-Backend fuer die bestehende statische Anwendung. Die
+[Frontend-Integration (Phase 3)](../docs/SERVER_LIBRARY.md) verbindet jetzt
+Startbibliothek und explizite Speicheraktionen mit dieser API.
+Keine Benutzerkonten, Datenbank oder Pi-Bereitstellung. Die
 Charaktererstellung, Berechnungen sowie JSON-Import und -Export bleiben unveraendert.
 Zum reinen Offline-Betrieb ist Flask weiterhin nicht erforderlich.
 
@@ -84,8 +86,8 @@ Die Antwort und die gespeicherte UUID-Datei verwenden folgende Huelle:
 
 `character` bleibt das originale Exportobjekt. Fuer den bestehenden Import
 ausschliesslich dieses Unterobjekt als JSON verwenden. ID und Revision werden
-vom Server verwaltet; `updated_at` ist ein UTC-Zeitstempel. Es gibt noch keinen
-API-Aufruf im Frontend.
+vom Server verwaltet; `updated_at` ist ein UTC-Zeitstempel. Die Frontend-Anbindung
+verwendet diese Endpunkte unveraendert.
 
 | Methode | Pfad | Verhalten |
 | --- | --- | --- |

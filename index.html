@@ -57,6 +57,14 @@
       <button class="btn ghost" id="btnLoadStart">&#128193; Load a saved character</button>
       <input type="file" id="fileLoadStart" accept="application/json,.json" style="display:none">
     </div>
+    <section class="server-library recent-wrap" aria-labelledby="serverLibraryTitle">
+      <div class="server-library-head">
+        <h2 class="recent-h" id="serverLibraryTitle">Shared character library</h2>
+        <button class="btn ghost" id="serverRefresh" type="button">Refresh</button>
+      </div>
+      <p class="server-status" id="serverListStatus" role="status" aria-live="polite"></p>
+      <div class="recent-list" id="serverCharacterList"></div>
+    </section>
     <div class="reference-wrap">
       <div class="reference-h">Browse the rules</div>
       <div class="reference-cards">
@@ -115,6 +123,19 @@
       <button class="step" data-step="equipment"><span class="step-n">5</span> Equipment</button>
       <button class="step" data-step="spells"><span class="step-n">6</span> Spells</button>
       <button class="step" data-step="sheet"><span class="step-n">7</span> Sheet</button>
+    </div>
+
+    <div class="server-tools" aria-label="Server character storage">
+      <div class="server-actions">
+        <button class="btn" id="serverSave" type="button">Save to Server</button>
+        <button class="btn ghost" id="serverSaveNew" type="button">Save as New on Server</button>
+      </div>
+      <p class="server-status" id="serverSaveStatus" role="status" aria-live="polite"></p>
+      <div class="server-conflict hidden" id="serverConflict" role="alert">
+        <p>Your changes have not replaced the newer server version.</p>
+        <button class="btn ghost" id="serverReload" type="button">Reload server version</button>
+        <button class="btn" id="serverConflictNew" type="button">Save as New on Server</button>
+      </div>
     </div>
 
     <!-- STEP: CLASS -->
@@ -298,6 +319,7 @@
   </div>
 </div>
 
+<script src="js/server-library.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

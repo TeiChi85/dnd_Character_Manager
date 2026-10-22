@@ -14,6 +14,7 @@
             sheet:freshSheet()};
   }
   var state=freshCharacter();
+  var serverLibrary=null;
   // Wipe every character field in place (keeping the same state object) and reset the form controls.
   function resetCharacter(){
     charFileHandle=null;                    // a new character is not tied to a file
@@ -27,6 +28,7 @@
     var am=$("abilityMethod");if(am)am.value="pointbuy";
     var hr=$("hpEditRow");if(hr)hr.classList.add("hidden");
     document.body.classList.remove("dark");
+    if(serverLibrary)serverLibrary.detach();
     populateLevels();
     $("featTitle").textContent="Class Features";
   }
@@ -246,6 +248,7 @@
   function showEdition(){
     $("screen-build").classList.add("hidden");$("screen-edition").classList.remove("hidden");
     renderRecents();
+    if(serverLibrary)serverLibrary.refresh();
   }
   function setStep(step){
     $("step-class").classList.toggle("hidden",step!=="class");
@@ -354,7 +357,7 @@
   /* ---------- render ---------- */
   function render(){
     var hasClass=!!state.className;
-    var cp=$("charPortrait");if(cp)cp.innerHTML=state.portrait?'<img src="'+state.portrait+'">':"&#9670;";
+    var cp=$("charPortrait");if(cp)cp.innerHTML=state.portrait?'<img src="'+esc(state.portrait)+'">':"&#9670;";
     $("classCard").classList.toggle("hidden",!hasClass);
     $("noClassMsg").classList.toggle("hidden",hasClass);
     $("featuresWrap").classList.toggle("hidden",!hasClass);
@@ -3815,7 +3818,7 @@
     var sub=((speciesLabel())+" "+state.className+" "+state.level).trim();
     if(state.subclassName)sub+="  ·  "+state.subclassName;
 
-    var html='<div class="sheet-head"><div class="sheet-portrait" id="sheetPortrait">'+(state.portrait?'<img src="'+state.portrait+'">':"&#9670;")+'</div><div><div class="sheet-name">'+esc(state.name||"Unnamed")+'</div><div class="sheet-sub">'+esc(sub)+"</div></div>"+
+    var html='<div class="sheet-head"><div class="sheet-portrait" id="sheetPortrait">'+(state.portrait?'<img src="'+esc(state.portrait)+'">':"&#9670;")+'</div><div><div class="sheet-name">'+esc(state.name||"Unnamed")+'</div><div class="sheet-sub">'+esc(sub)+"</div></div>"+
       '<div class="sheet-top">'+topStat("+"+prof,"Prof Bonus",profWhy())+topStat(esc(speedText()),"Speed",speedWhy())+topStat(modStr(init),"Initiative",initWhy())+acStatHtml(ac)+
       (abilitySaveDc()!=null?topStat(abilitySaveDc(),"Save DC",dcAbility()+" save DC = 8 + proficiency ("+prof+") + "+dcAbility()+" modifier ("+modStr(abMod(totalScore(dcAbility())))+"). Enemies roll against this for your class and racial abilities that force a save."):"")+
       '<div class="top-stat insp-box" id="inspBox"><div class="tv">'+(state.sheet.inspiration?ICON.starOn:ICON.star)+'</div><div class="tl">Inspiration</div></div>'+
@@ -4270,8 +4273,7 @@
         // read access is enough to open it; without write access Save asks for a location
         if(!ok)toast("Opened read-only — Save will ask where to put it");
         return r.handle.getFile().then(function(f){
-          charFileHandle=ok?r.handle:null;
-          loadCharFile(f);
+          loadCharFile(f,ok?r.handle:null);
           r.when=(new Date()).getTime();
           return rcPut(r);
         });
@@ -4354,16 +4356,28 @@
       return window.showOpenFilePicker(opts);
     })
       .then(function(hs){
-        var h=hs[0];charFileHandle=h;
-        return h.getFile().then(function(f){loadCharFile(f);});
+        var h=hs[0];
+        return h.getFile().then(function(f){loadCharFile(f,h);});
       })["catch"](function(e){
         if(e&&e.name==="AbortError")return;
         $(fallbackInputId).click();
       });
   }
-  function loadCharObj(o){
+  function loadCharObj(o,fromServer){
     if(!o||o._app!=="dnd-cc"){alert("That doesn't look like a saved character file.");return;}
-    SAVE_KEYS.forEach(function(k){if(o[k]!==undefined)state[k]=o[k];});
+    // Always restore onto fresh defaults, including nested fields in older saves.
+    function merge(base,value){
+      if(!base||!value||typeof base!=="object"||typeof value!=="object"||Array.isArray(base)||Array.isArray(value))return value;
+      Object.keys(value).forEach(function(k){
+        if(k!=="__proto__"&&k!=="constructor"&&k!=="prototype")base[k]=merge(base[k],value[k]);
+      });
+      return base;
+    }
+    var fresh=freshCharacter();
+    SAVE_KEYS.forEach(function(k){if(o[k]!==undefined)fresh[k]=merge(fresh[k],o[k]);});
+    Object.keys(state).forEach(function(k){delete state[k];});
+    Object.keys(fresh).forEach(function(k){state[k]=fresh[k];});
+    if(!fromServer&&serverLibrary)serverLibrary.detach();
     var ds=freshSheet(),sk;                       // a file saved by an older build lacks newer keys
     for(sk in ds)if(state.sheet[sk]===undefined)state.sheet[sk]=ds[sk];
     if(!state.customProficiencies)state.customProficiencies={armor:[],weapons:[],tools:[]};
@@ -4380,10 +4394,80 @@
     else showBuild("class");
     rcRemember(charFileHandle);        // a no-op when the file came through the plain input
   }
-  function loadCharFile(file){   // note: charFileHandle is set by loadViaPicker when available
+  function loadCharFile(file,handle){
     var rd=new FileReader();
-    rd.onload=function(){try{loadCharObj(JSON.parse(rd.result));}catch(e){alert("Could not read file: "+(e.message||e));}};
+    rd.onload=function(){try{
+      var value=JSON.parse(rd.result);
+      if(!value||value._app!=="dnd-cc"){alert("That doesn't look like a saved character file.");return;}
+      if(serverLibrary&&!serverLibrary.canLeave())return;
+      charFileHandle=handle||null;loadCharObj(value);
+    }catch(e){alert("Could not read file: "+(e.message||e));}};
     rd.readAsText(file);
+  }
+
+  /* ---------- optional shared server library ---------- */
+  function initServerLibrary(){
+    if(!window.CCServerLibrary)return;
+    function setText(id,text){$(id).textContent=text;}
+    serverLibrary=window.CCServerLibrary.create({
+      serialize:serializeChar,
+      confirm:function(message){return confirm(message);},
+      prepare:function(character){
+        return new Promise(function(resolve,reject){
+          if(!character.slug){resolve();return;}
+          if(!classBySlug(character.slug)){reject(new Error("Game data for this character's class is missing. Your current character was kept."));return;}
+          var timer=window.setTimeout(function(){reject(new Error("Game data for this character timed out. Your current character was kept."));},15000);
+          loadFeatureData(character.slug,function(fd){
+            window.clearTimeout(timer);
+            if(fd)resolve();else reject(new Error("Game data for this character could not be loaded. Your current character was kept."));
+          });
+        });
+      },
+      load:function(character){
+        var previous=serializeChar(),handle=charFileHandle;
+        var wasHome=!$("screen-edition").classList.contains("hidden");
+        try{charFileHandle=null;loadCharObj(character,true);}
+        catch(error){
+          charFileHandle=handle;loadCharObj(previous,true);
+          if(wasHome)showEdition();
+          throw new Error("Invalid response from the character server. Your current character was kept.");
+        }
+      },
+      onStatus:function(message,kind){
+        setText("serverSaveStatus",message);
+        if(message&&!$("screen-edition").classList.contains("hidden"))setText("serverListStatus",message);
+        $("serverConflict").classList.toggle("hidden",kind!=="conflict");
+      },
+      onBusy:function(value){
+        ["serverSave","serverSaveNew","serverReload","serverConflictNew"].forEach(function(id){$(id).disabled=value;});
+        Array.prototype.forEach.call($("serverCharacterList").querySelectorAll("button"),function(button){button.disabled=value;});
+      },
+      onList:function(items,message){
+        setText("serverListStatus",message);
+        var host=$("serverCharacterList");host.innerHTML="";
+        items.forEach(function(item){
+          var button=document.createElement("button");button.type="button";button.className="rc server-character";
+          var title=document.createElement("span");title.className="rc-name";title.textContent=item.name||"Unnamed character";
+          var summary=document.createElement("span");summary.className="rc-sub";
+          var edition=item.edition==="classic"?"2014":item.edition==="one"?"2024":"Edition not selected";
+          summary.textContent=(item.className||"Class not selected")+" · Level "+(item.level||1)+" · "+edition;
+          var date=document.createElement("span");date.className="rc-ago";
+          date.textContent="Updated "+new Date(item.updated_at).toLocaleString();
+          var text=document.createElement("span");text.className="rc-txt";
+          text.appendChild(title);text.appendChild(summary);text.appendChild(date);button.appendChild(text);
+          button.disabled=serverLibrary?serverLibrary.isBusy():false;
+          button.addEventListener("click",function(){serverLibrary.open(item.id);});host.appendChild(button);
+        });
+      }
+    });
+    $("serverRefresh").addEventListener("click",function(){serverLibrary.refresh();});
+    $("serverSave").addEventListener("click",function(){serverLibrary.save(false);});
+    $("serverSaveNew").addEventListener("click",function(){serverLibrary.save(true);});
+    $("serverConflictNew").addEventListener("click",function(){serverLibrary.save(true);});
+    $("serverReload").addEventListener("click",function(){serverLibrary.reload();});
+    if(window.addEventListener)window.addEventListener("beforeunload",function(event){
+      if(serverLibrary.isBusy()||serverLibrary.dirty()){event.preventDefault();event.returnValue="";}
+    });
   }
 
   function base64ToBytes(b64){var bin=atob(b64),arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr;}
@@ -4657,7 +4741,7 @@
     var head="<h1>"+esc2(state.name||"Unnamed")+"</h1>"+
              '<div class="sub">'+esc2(bits.join("  ·  "))+"</div>";
     h+=state.portrait
-      ? '<div class="phead"><img src="'+state.portrait+'" alt=""><div>'+head+"</div></div>"
+      ? '<div class="phead"><img src="'+esc(state.portrait)+'" alt=""><div>'+head+"</div></div>"
       : head;
     // headline numbers
     var tiles=[["AC",T.AC],["Hit Points",T.MHP],["Speed",T.WS],["Initiative",T.INI],
@@ -4784,6 +4868,7 @@
   document.querySelectorAll(".ed-card").forEach(function(card){
     card.addEventListener("click",function(){
       var ed=card.getAttribute("data-edition");
+      if(serverLibrary&&!serverLibrary.canLeave())return;
       resetCharacter();                      // always start an edition with a clean slate
       state.edition=ed;
       $("editionTag").textContent=editionLabel(ed);
@@ -4792,6 +4877,7 @@
     });
   });
   $("changeEdition").addEventListener("click",function(){
+    if(serverLibrary&&!serverLibrary.canLeave())return;
     resetCharacter();                       // "start over" must forget the loaded/built character
     $("stepsMenu").classList.remove("open");
     showEdition();
@@ -4883,7 +4969,7 @@
   $("toSpells2").addEventListener("click",function(){setStep("spells");});
   $("btnLoadStart").addEventListener("click",function(){loadViaPicker("fileLoadStart");});
   $("pdfBtn").addEventListener("click",function(){printSheet();});
-  $("fileLoadStart").addEventListener("change",function(e){if(e.target.files&&e.target.files[0]){charFileHandle=null;loadCharFile(e.target.files[0]);}e.target.value="";});
+  $("fileLoadStart").addEventListener("change",function(e){if(e.target.files&&e.target.files[0])loadCharFile(e.target.files[0]);e.target.value="";});
   $("abilityMethod").addEventListener("change",function(e){
     state.abilities.method=e.target.value;
     state.abilities.assign={};state.abilities.rolled=null;
@@ -4923,5 +5009,6 @@
       '</div>';
     return;
   }
+  initServerLibrary();
   populateLevels();showEdition();showDataVersion();
 })();
