@@ -1,8 +1,13 @@
 # CharacterManager unter Windows 11 entwickeln
 
+**Erweiterung MVP 1, Phase A:** Fuer die optionale lokale Charakterbibliothek
+gibt es jetzt ein Flask-Backend. Windows-Startbefehle, Speicherpfad, API und
+Tests stehen in [server/README.md](server/README.md). Der folgende bisherige
+statische Entwicklungsstart bleibt ohne pip-Abhaengigkeiten nutzbar.
+
 CharacterManager basiert auf [TaylorMouse/dnd_character_creator](https://github.com/TaylorMouse/dnd_character_creator).
 Die ursprüngliche Anwendung und die MIT-Lizenz bleiben unverändert. Diese
-Vorbereitung ergänzt nur Dokumentation und Ignore-Regeln, keine neuen Funktionen.
+ursprüngliche Vorbereitung ergänzte nur Dokumentation und Ignore-Regeln.
 
 ## 1. Software installieren
 
