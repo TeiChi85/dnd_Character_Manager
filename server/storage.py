@@ -116,10 +116,22 @@ class Store:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
         return self.archive_dir(kind) / (record["id"] + ".r" + str(record["revision"]) + "." + stamp + "." + str(uuid4()) + ".json")
 
+    def archived_record(self, path, identifier=None):
+        parts = path.name.split(".")
+        if len(parts) != 5 or parts[4] != "json":
+            raise ValueError("Unmanaged archive filename")
+        if str(UUID(parts[0])) != parts[0] or str(UUID(parts[3])) != parts[3] or identifier and parts[0] != identifier:
+            raise ValueError("Invalid archive identity")
+        datetime.strptime(parts[2], "%Y%m%dT%H%M%S%fZ")
+        record = self.read_record(path, parts[0])
+        if parts[1] != "r" + str(record["revision"]):
+            raise ValueError("Archive filename does not match its revision")
+        return record
+
     def backup(self, record):
         pattern = record["id"] + ".r" + str(record["revision"]) + ".*.json"
         for path in self.archive_dir("backups").glob(pattern):
-            if self.read_record(path, record["id"]) == record:
+            if self.archived_record(path, record["id"]) == record:
                 return  # A failed active replacement may already have saved this version.
         self.atomic_write(self.archive_path("backups", record), record)
 
@@ -146,7 +158,7 @@ class Store:
             backups = sorted(self.archive_dir("backups").glob(identifier + ".r*.json"),
                              key=lambda path: (path.stat().st_mtime_ns, path.name), reverse=True)
             for path in backups[self.backup_count:]:
-                self.read_record(path, identifier)
+                self.archived_record(path, identifier)
                 self.safe_path(path).unlink()
             if self.trash_days is not None:
                 cutoff = time.time() - self.trash_days * 86400
@@ -155,10 +167,7 @@ class Store:
                     parts = path.name.split(".")
                     if len(parts) != 5:
                         continue
-                    UUID(parts[0]); UUID(parts[3])
-                    record = self.read_record(path, parts[0])
-                    if parts[1] != "r" + str(record["revision"]):
-                        continue
+                    self.archived_record(path)
                     deleted = datetime.strptime(parts[2], "%Y%m%dT%H%M%S%fZ").replace(tzinfo=timezone.utc)
                     if deleted.timestamp() < cutoff:
                         self.safe_path(path).unlink()
@@ -185,11 +194,11 @@ class Store:
         with self.locked():
             if self.path(identifier).exists():
                 raise ValueError("An active character with this ID already exists")
-            record = self.read_record(self.archive_dir(kind) / filename, identifier)
+            record = self.archived_record(self.archive_dir(kind) / filename, identifier)
             revisions = [record["revision"]]
             for directory in ("trash", "backups"):
                 for path in self.archive_dir(directory).glob(identifier + ".r*.json"):
-                    revisions.append(self.read_record(path, identifier)["revision"])
+                    revisions.append(self.archived_record(path, identifier)["revision"])
             record["revision"] = max(revisions) + 1
             if record["revision"] > 9007199254740991:
                 raise ValueError("Revision limit reached")

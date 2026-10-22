@@ -52,6 +52,7 @@ def create_app(config=None):
     @app.errorhandler(OSError)
     @app.errorhandler(ValueError)
     @app.errorhandler(CharacterNotFound)
+    @app.errorhandler(RecursionError)
     def storage_error(error):
         app.logger.error("Character storage operation failed", exc_info=True)
         return jsonify(error="Character storage unavailable"), 500

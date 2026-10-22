@@ -204,6 +204,16 @@ class HardeningTests(unittest.TestCase):
             self.assertEqual(response.status_code, 201)
             self.assertEqual(response.json["character"], value)
 
+    def test_inventory_shape_written_by_add_item_obj_remains_valid(self):
+        self.character["equipment"]["inventory"] = [{
+            "name": "Synthetic Gear", "source": "", "cat": "Other Gear", "attune": None,
+            "bonusWeapon": None, "requires": None, "base": None,
+            "qty": 1, "equipped": False, "generic": True,
+        }]
+        response = self.update()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["character"], self.character)
+
     def test_cross_origin_mutations_are_rejected(self):
         for method in ("POST", "PUT", "DELETE"):
             response = self.client.open(self.url if method != "POST" else "/api/characters", method=method,
@@ -232,6 +242,18 @@ class HardeningTests(unittest.TestCase):
         self.store.trash_days = 30
         self.store.prune(self.record["id"])
         self.assertFalse(old.exists())
+
+    def test_archive_revision_mismatch_is_neither_restored_nor_cleaned_up(self):
+        self.delete()
+        archive = self.archives("trash")[0]
+        changed = archive.with_name(archive.name.replace(".r1.", ".r9."))
+        archive.rename(changed)
+        with self.assertRaises(ValueError):
+            self.store.restore("trash", changed.name)
+        self.store.trash_days = 1
+        with self.assertLogs("server.storage", level="WARNING"):
+            self.store.prune(self.record["id"])
+        self.assertTrue(changed.exists())
 
 
 if __name__ == "__main__":

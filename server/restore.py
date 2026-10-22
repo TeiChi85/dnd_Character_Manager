@@ -3,6 +3,7 @@
 import argparse
 
 from .app import create_app
+from .storage import CharacterNotFound
 
 
 def main():
@@ -13,8 +14,8 @@ def main():
     store = create_app().extensions["character_store"]
     try:
         record = store.restore(args.kind, args.filename)
-    except (OSError, ValueError) as error:
-        parser.exit(1, "Recovery failed: " + str(error) + "\n")
+    except (OSError, ValueError, CharacterNotFound) as error:
+        parser.exit(1, "Recovery failed: " + (str(error) or "Invalid archive identity") + "\n")
     print("Restored " + record["id"] + " at revision " + str(record["revision"]))
 
 

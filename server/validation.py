@@ -60,7 +60,7 @@ def validate_character(value):
             if len(item) > MAX_ARRAY:
                 raise ValueError("JSON object contains too many keys")
             for key, child in item.items():
-                if key in {"__proto__", "constructor", "prototype"} or len(key) > 200 or any(0xD800 <= ord(char) <= 0xDFFF for char in key):
+                if key in {"__proto__", "constructor", "prototype"} or len(key.encode("utf-16-le", "surrogatepass")) // 2 > 200 or any(0xD800 <= ord(char) <= 0xDFFF for char in key):
                     raise ValueError("Unsafe or oversized JSON key")
                 walk(child, depth + 1, depth == 0 and key == "portrait")
         elif isinstance(item, list):
@@ -121,7 +121,7 @@ def validate_character(value):
         if not isinstance(item, dict) or not isinstance(item.get("name"), str):
             raise ValueError("Inventory entries require a name")
         for key in ("qty", "ac", "weight", "bonus", "bonusAc", "bonusWeapon"):
-            if key in item and not numeric(item[key]):
+            if key in item and not (item[key] is None and key != "qty") and not numeric(item[key]):
                 raise ValueError("Invalid inventory numeric field")
         for key in ("equipped", "attuned"):
             if key in item and type(item[key]) is not bool:
