@@ -14,6 +14,7 @@
             sheet:freshSheet()};
   }
   var state=freshCharacter();
+  var serverLibrary=null;
   // Wipe every character field in place (keeping the same state object) and reset the form controls.
   function resetCharacter(){
     charFileHandle=null;                    // a new character is not tied to a file
@@ -26,7 +27,7 @@
     var cs=$("classSelect");if(cs)cs.value="";
     var am=$("abilityMethod");if(am)am.value="pointbuy";
     var hr=$("hpEditRow");if(hr)hr.classList.add("hidden");
-    document.body.classList.remove("dark");
+    if(serverLibrary)serverLibrary.detach();
     populateLevels();
     $("featTitle").textContent="Class Features";
   }
@@ -221,11 +222,11 @@
     }
     if(t==="quote"){return "<blockquote class='ent'>"+(e.entries||[]).map(renderEntry).join("")+"</blockquote>";}
     if(t==="options"){
-      var note=e.count?"<p class='tag-note'>Choose "+e.count+".</p>":"";
+      var note=e.count?"<p class='tag-note'>Choose "+esc(e.count)+".</p>":"";
       return note+(e.entries||[]).map(renderEntry).join("");
     }
     if(t==="abilityDc"){
-      return "<p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your "+((e.attributes||[]).join(" or ")||"spellcasting ability")+" modifier</p>";
+      return "<p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your "+esc((e.attributes||[]).join(" or ")||"spellcasting ability")+" modifier</p>";
     }
     if(t==="refClassFeature"||t==="refSubclassFeature"){
       var key=e.classFeature||e.subclassFeature;
@@ -246,6 +247,7 @@
   function showEdition(){
     $("screen-build").classList.add("hidden");$("screen-edition").classList.remove("hidden");
     renderRecents();
+    if(serverLibrary)serverLibrary.refresh();
   }
   function setStep(step){
     $("step-class").classList.toggle("hidden",step!=="class");
@@ -259,10 +261,8 @@
     var labels={"class":"1 · Class & Features",background:"2 · Background & Details",species:"3 · Species",abilities:"4 · Ability Scores",equipment:"5 · Equipment",spells:"6 · Spells",sheet:"7 · Character Sheet"};
     var mb=$("menuBtn");if(mb)mb.innerHTML="☰";
     var sm=$("stepsMenu");if(sm)sm.classList.remove("open");
-    var dk=$("darkToggle");if(dk){dk.classList.toggle("hidden",step!=="sheet");dk.innerHTML=state.sheet.dark?ICON.sun:ICON.moon;}
     var sb=$("saveBtn");if(sb){sb.classList.toggle("hidden",!state.className);sb.innerHTML=ICON.save;}
     var pb=$("pdfBtn");if(pb){pb.classList.toggle("hidden",!state.className);pb.innerHTML=ICON.pdf;}
-    document.body.classList.toggle("dark",step==="sheet"&&!!state.sheet.dark);
     var wrap=document.querySelector(".wrap");if(wrap)wrap.classList.toggle("wide",step==="sheet");
     render();               // always refresh the page we're navigating to with the latest state
     window.scrollTo(0,0);
@@ -354,7 +354,7 @@
   /* ---------- render ---------- */
   function render(){
     var hasClass=!!state.className;
-    var cp=$("charPortrait");if(cp)cp.innerHTML=state.portrait?'<img src="'+state.portrait+'">':"&#9670;";
+    var cp=$("charPortrait");if(cp)cp.innerHTML=state.portrait?'<img src="'+esc(state.portrait)+'">':"&#9670;";
     $("classCard").classList.toggle("hidden",!hasClass);
     $("noClassMsg").classList.toggle("hidden",hasClass);
     $("featuresWrap").classList.toggle("hidden",!hasClass);
@@ -2308,7 +2308,7 @@
     inv.forEach(function(it,i){
       var att=itemAttune(it),info=itemInfo(it.name,it.source),full=itemEntriesFull(it),hasDesc=full.length;
       var meta=it.cat+(it.rarity&&it.rarity!=="none"?" · "+it.rarity:"")+(it.dmg?" · "+it.dmg+" "+dmgAbbr(it.dmgType):"")+(it.ac&&it.armorKind!=="shield"?" · AC "+it.ac:"")+(it.armorKind==="shield"?" · +"+(it.ac||2)+" AC":"")+(att?" · "+attuneNote(att):"");
-      var ctrl='<input type="number" min="1" class="inv-qty" data-i="'+i+'" value="'+(it.qty||1)+'">';
+      var ctrl='<input type="number" min="1" class="inv-qty" data-i="'+i+'" value="'+esc(it.qty||1)+'">';
       var eqi=equipInfo(it);
       if(eqi.ok){
         ctrl+='<button class="equip-btn'+(it.equipped?" on":"")+'" data-i="'+i+'">'+eqi.verb+"</button>";
@@ -3815,7 +3815,7 @@
     var sub=((speciesLabel())+" "+state.className+" "+state.level).trim();
     if(state.subclassName)sub+="  ·  "+state.subclassName;
 
-    var html='<div class="sheet-head"><div class="sheet-portrait" id="sheetPortrait">'+(state.portrait?'<img src="'+state.portrait+'">':"&#9670;")+'</div><div><div class="sheet-name">'+esc(state.name||"Unnamed")+'</div><div class="sheet-sub">'+esc(sub)+"</div></div>"+
+    var html='<div class="sheet-head"><div class="sheet-portrait" id="sheetPortrait">'+(state.portrait?'<img src="'+esc(state.portrait)+'">':"&#9670;")+'</div><div><div class="sheet-name">'+esc(state.name||"Unnamed")+'</div><div class="sheet-sub">'+esc(sub)+"</div></div>"+
       '<div class="sheet-top">'+topStat("+"+prof,"Prof Bonus",profWhy())+topStat(esc(speedText()),"Speed",speedWhy())+topStat(modStr(init),"Initiative",initWhy())+acStatHtml(ac)+
       (abilitySaveDc()!=null?topStat(abilitySaveDc(),"Save DC",dcAbility()+" save DC = 8 + proficiency ("+prof+") + "+dcAbility()+" modifier ("+modStr(abMod(totalScore(dcAbility())))+"). Enemies roll against this for your class and racial abilities that force a save."):"")+
       '<div class="top-stat insp-box" id="inspBox"><div class="tv">'+(state.sheet.inspiration?ICON.starOn:ICON.star)+'</div><div class="tl">Inspiration</div></div>'+
@@ -3940,8 +3940,8 @@
         var badge=(att&&it.attuned)?' <span class="attune-star">&#10022; attuned</span>':"";
         var info=itemInfo(it.name,it.source),full=itemEntriesFull(it),hasDesc=full.length;
         var meta=it.cat+(it.dmg?" · "+it.dmg+" "+(it.dmgType||""):"")+(it.ac&&it.armorKind!=="shield"?" · AC "+it.ac:"")+(it.armorKind==="shield"?" · +"+(it.ac||2)+" AC":"")+(it.rarity&&it.rarity!=="none"?" · "+it.rarity:"")+(att?" · "+attuneNote(att):"");
-        var qb=(it.qty>1?'<span class="qty-badge">&times;'+it.qty+"</span> ":"");
-        var ctrl='<input type="number" min="1" class="sh-qty" data-i="'+i+'" title="Quantity" value="'+(it.qty||1)+'">';
+        var qb=(it.qty>1?'<span class="qty-badge">&times;'+esc(it.qty)+"</span> ":"");
+        var ctrl='<input type="number" min="1" class="sh-qty" data-i="'+i+'" title="Quantity" value="'+esc(it.qty||1)+'">';
         var ra=resolveArmor(it);
         var eqi=equipInfo(it);
         if(eqi.ok)ctrl+='<button class="equip-btn sh-equip'+(it.equipped?" on":"")+'" data-i="'+i+'">'+eqi.verb+"</button>";
@@ -4270,8 +4270,7 @@
         // read access is enough to open it; without write access Save asks for a location
         if(!ok)toast("Opened read-only — Save will ask where to put it");
         return r.handle.getFile().then(function(f){
-          charFileHandle=ok?r.handle:null;
-          loadCharFile(f);
+          loadCharFile(f,ok?r.handle:null);
           r.when=(new Date()).getTime();
           return rcPut(r);
         });
@@ -4354,16 +4353,30 @@
       return window.showOpenFilePicker(opts);
     })
       .then(function(hs){
-        var h=hs[0];charFileHandle=h;
-        return h.getFile().then(function(f){loadCharFile(f);});
+        var h=hs[0];
+        return h.getFile().then(function(f){loadCharFile(f,h);});
       })["catch"](function(e){
         if(e&&e.name==="AbortError")return;
         $(fallbackInputId).click();
       });
   }
-  function loadCharObj(o){
+  function loadCharObj(o,fromServer){
     if(!o||o._app!=="dnd-cc"){alert("That doesn't look like a saved character file.");return;}
-    SAVE_KEYS.forEach(function(k){if(o[k]!==undefined)state[k]=o[k];});
+    if(!window.CCCharacterJSON)throw new Error("Character validation unavailable. Reload the application before importing.");
+    window.CCCharacterJSON.validate(o);
+    // Always restore onto fresh defaults, including nested fields in older saves.
+    function merge(base,value){
+      if(!base||!value||typeof base!=="object"||typeof value!=="object"||Array.isArray(base)||Array.isArray(value))return value;
+      Object.keys(value).forEach(function(k){
+        if(k!=="__proto__"&&k!=="constructor"&&k!=="prototype")base[k]=merge(base[k],value[k]);
+      });
+      return base;
+    }
+    var fresh=freshCharacter();
+    SAVE_KEYS.forEach(function(k){if(o[k]!==undefined)fresh[k]=merge(fresh[k],o[k]);});
+    Object.keys(state).forEach(function(k){delete state[k];});
+    Object.keys(fresh).forEach(function(k){state[k]=fresh[k];});
+    if(!fromServer&&serverLibrary)serverLibrary.detach();
     var ds=freshSheet(),sk;                       // a file saved by an older build lacks newer keys
     for(sk in ds)if(state.sheet[sk]===undefined)state.sheet[sk]=ds[sk];
     if(!state.customProficiencies)state.customProficiencies={armor:[],weapons:[],tools:[]};
@@ -4380,10 +4393,110 @@
     else showBuild("class");
     rcRemember(charFileHandle);        // a no-op when the file came through the plain input
   }
-  function loadCharFile(file){   // note: charFileHandle is set by loadViaPicker when available
+  function loadCharFile(file,handle){
+    if(file.size>2097152){alert("Character file exceeds the 2 MiB limit. Your current character was kept.");return;}
     var rd=new FileReader();
-    rd.onload=function(){try{loadCharObj(JSON.parse(rd.result));}catch(e){alert("Could not read file: "+(e.message||e));}};
+    rd.onload=function(){try{
+      if(!window.CCCharacterJSON)throw new Error("Character validation unavailable. Reload the application before importing.");
+      var value=window.CCCharacterJSON.parse(rd.result);
+      if(!value||value._app!=="dnd-cc"){alert("That doesn't look like a saved character file.");return;}
+      if(serverLibrary&&!serverLibrary.canLeave())return;
+      charFileHandle=handle||null;loadCharObj(value);
+    }catch(e){alert("Could not read file: "+(e.message||e));}};
+    rd.onerror=function(){alert("Could not read the character file. Your current character was kept.");};
     rd.readAsText(file);
+  }
+
+  /* ---------- optional shared server library ---------- */
+  function initServerLibrary(){
+    if(!window.CCServerLibrary)return;
+    function setText(id,text){$(id).textContent=text;}
+    serverLibrary=window.CCServerLibrary.create({
+      serialize:serializeChar,
+      confirm:function(message){return confirm(message);},
+      confirmDelete:function(item){
+        return new Promise(function(resolve){
+          var dialog=$("deleteDialog"),settled=false;
+          setText("deleteCharacterName",item.name||"Unnamed character");
+          function finish(confirmed){
+            if(settled)return;settled=true;
+            if(dialog.open)dialog.close();
+            dialog.oncancel=dialog.onclose=dialog.onclick=null;
+            $("deleteCancel").onclick=$("deleteClose").onclick=$("deleteConfirm").onclick=null;
+            resolve(confirmed);
+          }
+          $("deleteCancel").onclick=$("deleteClose").onclick=function(){finish(false);};
+          $("deleteConfirm").onclick=function(){finish(true);};
+          dialog.oncancel=function(event){event.preventDefault();finish(false);};
+          dialog.onclose=function(){finish(false);};
+          dialog.onclick=function(event){if(event.target===dialog)finish(false);};
+          dialog.showModal();$("deleteCancel").focus();
+        });
+      },
+      prepare:function(character){
+        return new Promise(function(resolve,reject){
+          if(!character.slug){resolve();return;}
+          if(!classBySlug(character.slug)){reject(new Error("Game data for this character's class is missing. Your current character was kept."));return;}
+          var timer=window.setTimeout(function(){reject(new Error("Game data for this character timed out. Your current character was kept."));},15000);
+          loadFeatureData(character.slug,function(fd){
+            window.clearTimeout(timer);
+            if(fd)resolve();else reject(new Error("Game data for this character could not be loaded. Your current character was kept."));
+          });
+        });
+      },
+      load:function(character){
+        var previous=serializeChar(),handle=charFileHandle;
+        var wasHome=!$("screen-edition").classList.contains("hidden");
+        try{charFileHandle=null;loadCharObj(character,true);}
+        catch(error){
+          charFileHandle=handle;loadCharObj(previous,true);
+          if(wasHome)showEdition();
+          throw new Error("Invalid response from the character server. Your current character was kept.");
+        }
+      },
+      onStatus:function(message,kind){
+        setText("serverSaveStatus",message);
+        if(message&&!$("screen-edition").classList.contains("hidden"))setText("serverListStatus",message);
+        $("serverConflict").classList.toggle("hidden",kind!=="conflict");
+      },
+      onBusy:function(value){
+        ["serverSave","serverSaveNew","serverReload","serverConflictNew"].forEach(function(id){$(id).disabled=value;});
+        Array.prototype.forEach.call($("serverCharacterList").querySelectorAll("button"),function(button){button.disabled=value;});
+      },
+      onList:function(items,message){
+        setText("serverListStatus",message);
+        var host=$("serverCharacterList");host.innerHTML="";
+        items.forEach(function(item){
+          var row=document.createElement("div");row.className="server-row";
+          var button=document.createElement("button");button.type="button";button.className="rc server-character";
+          var title=document.createElement("span");title.className="rc-name";title.textContent=item.name||"Unnamed character";
+          var summary=document.createElement("span");summary.className="rc-sub";
+          var edition=item.edition==="classic"?"2014":item.edition==="one"?"2024":"Edition not selected";
+          summary.textContent=(item.className||"Class not selected")+" · Level "+(item.level||1)+" · "+edition;
+          var date=document.createElement("span");date.className="rc-ago";
+          date.textContent="Updated "+new Date(item.updated_at).toLocaleString();
+          var text=document.createElement("span");text.className="rc-txt";
+          text.appendChild(title);text.appendChild(summary);text.appendChild(date);button.appendChild(text);
+          button.disabled=serverLibrary?serverLibrary.isBusy():false;
+          button.addEventListener("click",function(){serverLibrary.open(item.id);});row.appendChild(button);
+          var remove=document.createElement("button");remove.type="button";remove.className="server-delete";
+          remove.setAttribute("aria-label","Delete character "+(item.name||"Unnamed character"));remove.title="Delete character";
+          remove.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7"/></svg>';
+          remove.disabled=button.disabled;
+          remove.addEventListener("click",function(event){event.stopPropagation();serverLibrary.remove(item);});
+          row.appendChild(remove);host.appendChild(row);
+        });
+        if(message&&message.indexOf("Deleted ")===0)$("serverRefresh").focus();
+      }
+    });
+    $("serverRefresh").addEventListener("click",function(){serverLibrary.refresh();});
+    $("serverSave").addEventListener("click",function(){serverLibrary.save(false);});
+    $("serverSaveNew").addEventListener("click",function(){serverLibrary.save(true);});
+    $("serverConflictNew").addEventListener("click",function(){serverLibrary.save(true);});
+    $("serverReload").addEventListener("click",function(){serverLibrary.reload();});
+    if(window.addEventListener)window.addEventListener("beforeunload",function(event){
+      if(serverLibrary.isBusy()||serverLibrary.dirty()){event.preventDefault();event.returnValue="";}
+    });
   }
 
   function base64ToBytes(b64){var bin=atob(b64),arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr;}
@@ -4657,7 +4770,7 @@
     var head="<h1>"+esc2(state.name||"Unnamed")+"</h1>"+
              '<div class="sub">'+esc2(bits.join("  ·  "))+"</div>";
     h+=state.portrait
-      ? '<div class="phead"><img src="'+state.portrait+'" alt=""><div>'+head+"</div></div>"
+      ? '<div class="phead"><img src="'+esc(state.portrait)+'" alt=""><div>'+head+"</div></div>"
       : head;
     // headline numbers
     var tiles=[["AC",T.AC],["Hit Points",T.MHP],["Speed",T.WS],["Initiative",T.INI],
@@ -4784,6 +4897,7 @@
   document.querySelectorAll(".ed-card").forEach(function(card){
     card.addEventListener("click",function(){
       var ed=card.getAttribute("data-edition");
+      if(serverLibrary&&!serverLibrary.canLeave())return;
       resetCharacter();                      // always start an edition with a clean slate
       state.edition=ed;
       $("editionTag").textContent=editionLabel(ed);
@@ -4792,6 +4906,7 @@
     });
   });
   $("changeEdition").addEventListener("click",function(){
+    if(serverLibrary&&!serverLibrary.canLeave())return;
     resetCharacter();                       // "start over" must forget the loaded/built character
     $("stepsMenu").classList.remove("open");
     showEdition();
@@ -4860,7 +4975,6 @@
     if(m)m.classList.remove("open");
   });
   $("saveBtn").addEventListener("click",function(){saveChar();});
-  $("darkToggle").addEventListener("click",function(){state.sheet.dark=!state.sheet.dark;document.body.classList.toggle("dark",state.sheet.dark);this.innerHTML=state.sheet.dark?ICON.sun:ICON.moon;});
   Array.prototype.forEach.call(document.querySelectorAll(".step"),function(b){b.addEventListener("click",function(){setStep(b.getAttribute("data-step"));});});
   $("toBackground").addEventListener("click",function(){setStep("background");});
   $("toClass").addEventListener("click",function(){setStep("class");});
@@ -4883,7 +4997,7 @@
   $("toSpells2").addEventListener("click",function(){setStep("spells");});
   $("btnLoadStart").addEventListener("click",function(){loadViaPicker("fileLoadStart");});
   $("pdfBtn").addEventListener("click",function(){printSheet();});
-  $("fileLoadStart").addEventListener("change",function(e){if(e.target.files&&e.target.files[0]){charFileHandle=null;loadCharFile(e.target.files[0]);}e.target.value="";});
+  $("fileLoadStart").addEventListener("change",function(e){if(e.target.files&&e.target.files[0])loadCharFile(e.target.files[0]);e.target.value="";});
   $("abilityMethod").addEventListener("change",function(e){
     state.abilities.method=e.target.value;
     state.abilities.assign={};state.abilities.rolled=null;
@@ -4923,5 +5037,6 @@
       '</div>';
     return;
   }
+  initServerLibrary();
   populateLevels();showEdition();showDataVersion();
 })();

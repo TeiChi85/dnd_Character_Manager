@@ -25,6 +25,19 @@ just open `index.html` in a browser (Chrome/Edge recommended).
 
 ## Running
 
+An optional local Flask character storage API is available for MVP 1, Phase A.
+See [server/README.md](server/README.md) for Windows setup, endpoints and tests.
+It serves this same application at `http://127.0.0.1:8000/`, with a shared library
+on the start page and explicit server save actions. See the
+[frontend guide](docs/SERVER_LIBRARY.md) for usage and conflict recovery.
+The offline workflow below remains available.
+
+Phase 4 adds revision-checked deletion to a private trash folder, automatic
+previous-version backups, global persistent light/dark mode and hardened JSON
+imports. See the [Phase 4 guide](docs/PHASE4.md) and
+[recovery instructions](docs/STORAGE_RECOVERY.md). No authentication is provided;
+use only locally or within a trusted network.
+
 Open `index.html` in a browser. That's it. (The "Save As" dialog and PDF export work best in
 Chromium-based browsers.)
 

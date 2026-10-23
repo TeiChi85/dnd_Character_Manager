@@ -54,6 +54,13 @@ portraits/
 .pytest_cache/
 .ruff_cache/
 node_modules/
+/server/.venv/
+/server/storage/
+/instance/
+*.json.tmp
+backups/
+trash/
+character-storage/
 
 # Raw rules, homebrew and character exports: conservative default for all JSON.
 # Add a narrowly scoped exception only for reviewed, redistributable source fixtures.
