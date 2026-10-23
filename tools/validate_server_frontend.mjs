@@ -69,7 +69,8 @@ function harness({offline=false,transport=null}={}){
   const startup='initServerLibrary();\n  populateLevels();showEdition();showDataVersion();';
   assert.ok(appSource.includes(startup));
   vm.runInContext(appSource.replace(startup,`
-    render=function(){};
+    window.__renders=[];
+    render=function(){window.__renders.push({slug:state.slug,className:state.className,fdata:state.fdata});};
     populateClasses=populateBackgrounds=populateRaces=populateLevels=function(){};
     initServerLibrary();
     window.__test={state:state,serialize:serializeChar,load:loadCharObj,loadFile:loadCharFile,
