@@ -28,9 +28,9 @@ ursprüngliche Vorbereitung ergänzte nur Dokumentation und Ignore-Regeln.
 - Offizielle **Codex-Erweiterung von OpenAI** in VS Code installieren und mit
   dem ChatGPT-Konto anmelden. Siehe [offizielle Einrichtung](https://developers.openai.com/codex/ide/).
   Alternativ das lokale Repository in der Codex-Desktop-Anwendung öffnen.
-- Edge oder Chrome. Windows Script Host (`cscript.exe`) wird für die vorhandenen
-  Tests benötigt. Falls durch Windows-/Organisationsrichtlinien deaktiviert,
-  ist dieser Testlauf dort nicht verfügbar.
+- Edge oder Chrome. Node.js 18+ wird fuer die plattformunabhaengigen
+  Entwicklungstests benoetigt (keine npm-Pakete). Windows Script Host ist nur
+  fuer den direkten Vergleich mit der bisherigen Windows-Regelsuite erforderlich.
 
 PowerShell neu öffnen und prüfen:
 
@@ -39,9 +39,9 @@ git --version
 py -3 --version
 ```
 
-Für den reinen Offline-Betrieb sind weder Node.js, npm, zusätzliche pip-Pakete
-noch ein OpenAI-API-Schlüssel erforderlich. Die optionale Serverbibliothek
-benötigt Flask; der zusätzliche Frontend-Test eine Node-Laufzeit, ohne npm-Pakete.
+Für den reinen Offline-Betrieb sind weder Node.js, npm noch ein OpenAI-API-Schlüssel
+erforderlich. Die optionale Serverbibliothek benötigt Flask. Node.js wird nur
+fuer die Entwicklungstests gebraucht; npm-Pakete sind dafuer nicht erforderlich.
 Codex ist das Entwicklungswerkzeug.
 
 ## 2. Repository klonen und in VS Code öffnen
@@ -155,16 +155,24 @@ Backend ohne D&D-Regeldaten, mit isolierten temporaeren Speichern:
 .\.venv\Scripts\python.exe -m unittest discover -s server -t . -v
 ```
 
-Frontend mit Node.js 18+ (keine npm-Pakete, synthetische Daten/simulierter DOM):
+Frontend und portabler Harness-Selbsttest mit Node.js 18+ (keine npm-Pakete,
+synthetische Daten/simulierter DOM):
 
 ```powershell
 node tools\validate_server_frontend.mjs
-node tools\validate_theme.mjs
 node tools\validate_class_loading.mjs
+node tools\validate_theme.mjs
+node tools\validate_rules.mjs --self-test
 ```
 
+Die Testarten und Grenzen sind in [docs/TESTING.md](docs/TESTING.md) beschrieben.
 Die Klassenlade-Suite prueft den echten Event-Handler und Loader mit gezielt
 vertauschten Script-Antworten; sie fuehrt beim Import auch die Frontend-Suite aus.
+Wenn beide Befehle ausgefuehrt werden, laeuft die Frontend-Suite deshalb zweimal.
+`validate_rules.mjs --self-test` prueft ausschliesslich den Node-Adapter mit
+synthetischen Testdaten, die klare Fehlermeldung bei fehlenden Regeldaten und
+einen absichtlich fehlschlagenden isolierten Testprozess. Das ist kein Test der
+D&D-Regeln.
 Der optionale Live-Test `node tools\validate_live_library.mjs` darf nur gegen
 einen eigenen Flask-Testserver auf `127.0.0.1:8001` mit isoliertem temporaerem
 `CC_CHARACTER_STORAGE` laufen, niemals gegen echte Charaktere. Er erzeugt
@@ -172,19 +180,30 @@ synthetische Charaktere und hinterlaesst deren Recovery-Archive im Test-Speicher
 Eine konkrete isolierte Start-/Stop-Anleitung steht in
 [docs/TEST_BASELINE.md](docs/TEST_BASELINE.md).
 
-Nach erfolgreicher Datengenerierung in einem zweiten PowerShell-Fenster:
+Nach erfolgreicher lokaler Datengenerierung die vollstaendige Regelsuite mit Node
+ausfuehren:
+
+```powershell
+node tools\validate_rules.mjs
+if ($LASTEXITCODE -ne 0) { throw "Regel-Regressionstest fehlgeschlagen: Ausgabe prüfen." }
+```
+
+Der portable Runner nutzt dieselben Assertions in `tools/validate.js`; ein zweiter
+Satz fachlicher Assertions wird nicht gepflegt. Er ersetzt die WSH-Zugriffe auf
+Dateien und ActiveX-Objekte durch einen kleinen Adapter. Der bisherige direkte
+Windows-Vergleich bleibt verfuegbar:
 
 ```powershell
 cscript.exe //nologo tools\validate.js
-if ($LASTEXITCODE -ne 0) { throw "Regressionstest fehlgeschlagen: Ausgabe prüfen." }
+if ($LASTEXITCODE -ne 0) { throw "Windows-Regressionsvergleich fehlgeschlagen: Ausgabe prüfen." }
 ```
 
-Die Suite nutzt Windows-spezifische ActiveX-/Dateisystemobjekte und einen
-simulierten DOM. `node tools/validate.js` ist kein Ersatz. Ohne lokale Daten
-bricht sie beim Laden ab. In Linux-basierten Cloud-Umgebungen ist sie nicht
-unverändert ausführbar. Die ursprüngliche Vorbereitung führte weder eine
-Datengenerierung noch Windows-Tests aus. Die später tatsächlich ausgeführten
-Backend-, Frontend- und Windows-Läufe stehen in
+Die WSH-Datei nutzt weiterhin ActiveX-/Dateisystemobjekte und einen simulierten
+DOM; der Node-Adapter macht den Runner plattformunabhaengig. Beide vollstaendigen
+Regellaeufe benoetigen lokal generierte Ressourcen und brechen bei fehlenden
+Daten mit Fehler ab. GitHub Actions fuehrt nur den datenfreien Selbsttest aus,
+nicht die vollstaendige Regelsuite. Die tatsaechlich ausgefuehrten Backend-,
+Frontend- und Windows-Laeufe stehen in
 [server/TEST_RESULTS.md](server/TEST_RESULTS.md).
 Die fuer PR 01 neu ausgefuehrten Vorher-/Nachher-Laeufe, Exitcodes und
 Einschraenkungen stehen getrennt in [docs/TEST_BASELINE.md](docs/TEST_BASELINE.md).

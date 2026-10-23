@@ -115,11 +115,19 @@ Everything else works without these; the export button just explains what is mis
 
 ## Validating
 
-`tools/validate.js` is a headless regression suite (no browser needed). It mocks the DOM,
-loads the real data plus `js/app.js`, builds characters across every core class, edition,
-level and subclass, and checks the derived numbers against the 5e rules:
+`tools/validate_rules.mjs` is the portable Node.js runner for the headless rules
+regression suite (Node.js 18+, no npm packages). It mocks the DOM, loads the real
+data plus `js/app.js`, builds characters across every core class, edition, level
+and subclass, and checks the derived numbers against the 5e rules:
 
 ```bash
+node tools/validate_rules.mjs
+```
+
+The full suite needs locally generated rule data. The original Windows Script
+Host command remains available for comparison:
+
+```powershell
 cscript //nologo tools/validate.js
 ```
 
@@ -127,6 +135,8 @@ It covers proficiency bonus by level, all 18 skills (ability mapping and bonuses
 throws, hit points, subclass timing, caster kind, spell-slot/cantrip progressions, class
 resources, Extra Attack, armour class, attunement and overall data integrity — and renders
 every subclass to catch runtime errors. It exits non-zero on any failure.
+Data-free backend, frontend, theme and runner smoke tests are documented in
+[docs/TESTING.md](docs/TESTING.md).
 
 ## Licence and content
 
