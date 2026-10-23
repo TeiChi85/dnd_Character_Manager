@@ -101,12 +101,15 @@ class HardeningTests(unittest.TestCase):
 
     def test_active_replace_failure_keeps_original_and_backup(self):
         replace = os.replace
+        failed_targets = []
         def fail_active(source, target):
-            if Path(target).parent == self.directory:
+            if Path(target).parent == self.store.directory:
+                failed_targets.append(target)
                 raise OSError(errno.ENOSPC, "synthetic disk full")
             return replace(source, target)
         with patch("server.storage.os.replace", side_effect=fail_active), self.assertLogs(self.app.logger, level="ERROR"):
             self.assertEqual(self.update().status_code, 500)
+        self.assertEqual(len(failed_targets), 1)
         self.assertEqual(self.client.get(self.url).json, self.record)
         self.assertEqual(json.loads(self.archives("backups")[0].read_text()), self.record)
         self.assertEqual(list(self.directory.rglob("*.tmp")), [])
@@ -158,14 +161,19 @@ class HardeningTests(unittest.TestCase):
 
     def test_repeated_failed_updates_reuse_the_same_complete_backup(self):
         replace = os.replace
+        failed_targets = []
         def fail_active(source, target):
-            if Path(target).parent == self.directory:
+            if Path(target).parent == self.store.directory:
+                failed_targets.append(target)
                 raise PermissionError("synthetic active write failure")
             return replace(source, target)
         for _ in range(2):
             with patch("server.storage.os.replace", side_effect=fail_active), self.assertLogs(self.app.logger, level="ERROR"):
                 self.assertEqual(self.update().status_code, 500)
+        self.assertEqual(len(failed_targets), 2)
+        self.assertEqual(self.client.get(self.url).json, self.record)
         self.assertEqual(len(self.archives("backups")), 1)
+        self.assertEqual(json.loads(self.archives("backups")[0].read_text()), self.record)
         self.assertEqual(self.update().status_code, 200)
 
     def test_retention_failure_does_not_report_a_committed_save_as_failed(self):

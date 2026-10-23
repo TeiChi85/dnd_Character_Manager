@@ -146,3 +146,41 @@ gestaltet. Kein Framework, kein neues Paket und keine Testmigration eingefuehrt.
 Vorher-/Nachher-Baseline und reproduzierbarer Regression. Die genannten
 Umgebungs-/Sichtpruefungsgrenzen und die Abhaengigkeit der WSH-Suite von Windows
 und lokalen Daten bleiben offen.
+
+## PR 02: Portabler Regel-Runner und CI
+
+### Architektur
+
+`tools/validate_rules.mjs` fuehrt `tools/validate.js` unveraendert als
+gemeinsame Quelle der 1.513 Regel-Assertions aus. Der Node-Adapter implementiert
+die von der Suite benoetigten WSH-Datei- und Prozessoberflaechen mit der
+Node-Standardbibliothek. Die bisherige direkte `cscript.exe`-Ausfuehrung bleibt
+als Vergleich erhalten. Die Test-Quelltext-Erweiterung zum Zugriff auf interne
+App-Funktionen bleibt ausschliesslich in der Testdatei; `js/app.js` und die
+Regelberechnungen wurden fuer PR 02 nicht geaendert.
+
+`.github/workflows/tests.yml` fuehrt Backend-, Frontend-, Klassenlade-, Theme-
+und Adapter-Selbsttests fuer Ubuntu und Windows aus. Die vollstaendige
+Regelsuite wird ohne Regeldaten in CI nicht als bestanden gemeldet. Der
+Klassenlade-Test importiert weiterhin den Frontend-Harness und fuehrt diesen
+mit aus; bei separatem Aufruf beider Befehle erscheinen die 26
+Frontend-Szenarien daher zweimal.
+
+### In dieser Sitzung tatsaechlich ausgefuehrt
+
+| Befehl | Ergebnis |
+| --- | --- |
+| `.\.venv\Scripts\python.exe -m unittest discover -s server -t . -v` | 39 Tests bestanden, Exitcode 0 |
+| `cscript.exe //nologo tools\validate.js` | 1.513 Checks bestanden, 0 Fehler, 242/242 Unterklassen, Exitcode 0; Homebrew mangels Buch uebersprungen |
+
+Die lokale Node.js-Laufzeit ist weder im PATH noch an den ueblichen
+Installationspfaden vorhanden. Deshalb wurden `validate_rules.mjs --self-test`,
+die portablen Node-Frontendtests und der vollstaendige Node-/WSH-Paritaetslauf
+hier nicht ausgefuehrt. Auch ein GitHub-Actions-Lauf wurde in dieser Sitzung
+nicht gestartet. Die Workflow-Datei ist damit noch nicht durch einen
+tatsaechlichen CI-Lauf verifiziert. Fuer die Abnahme sind der
+Node-Selbsttest, die Node-Suiten und – mit denselben lokalen Regeldaten – ein
+Vergleich `node tools/validate_rules.mjs` gegen die oben dokumentierte
+WSH-Ausgabe erforderlich. Bis diese Laeufe erfolgreich sind, ist die
+plattformunabhaengige Migration implementiert, aber nicht vollstaendig
+verifiziert; PR 03 sollte auf diesen Ergebnissen aufbauen.

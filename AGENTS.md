@@ -24,14 +24,19 @@
   `.venv` nutzen bzw. erstellen und `server/requirements.txt` installieren;
   Start im Repository: `.\.venv\Scripts\python.exe -m server.app`.
   Beide lokalen Server aus `DEVELOPMENT.md` an `127.0.0.1` binden (Standard 8000).
-- Tests: Python `-m unittest discover -s server -t . -v`; Node ohne npm-Pakete:
-  `tools/validate_server_frontend.mjs`, `tools/validate_theme.mjs` und
-  `tools/validate_class_loading.mjs`. Letzterer verwendet die bestehende
-  Frontend-Testumgebung mit synthetischen Daten und kontrollierter Antwortreihenfolge.
+- Tests: Python `-m unittest discover -s server -t . -v`; Node 18+ ohne npm-Pakete:
+  `tools/validate_server_frontend.mjs`, `tools/validate_theme.mjs`,
+  `tools/validate_class_loading.mjs` und `tools/validate_rules.mjs --self-test`.
+  Die Klassenlade-Suite verwendet die Frontend-Testumgebung mit synthetischen
+  Daten und kontrollierter Antwortreihenfolge. Sie importiert ausserdem den
+  Frontend-Harness und fuehrt dessen Tests erneut aus.
   `tools/validate_live_library.mjs` ausschliesslich gegen einen separaten
   Testserver auf 127.0.0.1:8001 mit temporaerem Speicher ausserhalb des Repositorys.
-- Windows-Regelsuite: `cscript.exe //nologo tools\validate.js` nach lokaler
-  Datengenerierung (`CC_5ETOOLS_DATA` oder expliziter Datenpfad). Keine Downloads.
+- Vollstaendige Regelsuite: `node tools/validate_rules.mjs` oder weiterhin
+  direkt `cscript.exe //nologo tools\validate.js` nach lokaler Datengenerierung
+  (`CC_5ETOOLS_DATA` oder expliziter Datenpfad). Der Node-Adapter fuehrt dieselben
+  Assertions aus der WSH-Suite aus; keine Regeldaten werden eingecheckt oder
+  heruntergeladen.
   Bei fehlenden Daten/Werkzeugen die Einschraenkung nennen; einen ausgelassenen
   Test nie als bestanden melden. Aktuelle Baseline: `docs/TEST_BASELINE.md`.
 - Upstream-Hilfen für Packaging, Dropbox, Git-Hooks oder Public-Sync nicht
