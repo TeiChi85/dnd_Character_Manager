@@ -1,14 +1,17 @@
 # CharacterManager: Hinweise für Codex
 
-- Lies zuerst `DEVELOPMENT.md` und `README.md`. Statische Anwendung in HTML,
-  CSS und JavaScript; Python dient der lokalen Datengenerierung, nicht als Backend.
+- Lies zuerst `DEVELOPMENT.md` und `README.md`. Anwendung in HTML, CSS und
+  JavaScript; Python dient der lokalen Datengenerierung und als optionales
+  Flask-Backend (`server/`) fuer die gemeinsame Charakterbibliothek.
 - `index.html` und die Referenzseiten sind die Einstiegspunkte,
   `js/app.js` enthält die Anwendungslogik, `css/styles.css` die Darstellung.
   `tools/regen_all.py` ruft die Datengeneratoren auf; `tools/datasrc.py`
   unterstützt einen expliziten Datenpfad und `CC_5ETOOLS_DATA`.
-- Ändere das Verhalten nur im Rahmen des aktuellen Nutzerauftrags. Die erste
-  Vorbereitung umfasst ausschließlich Dokumentation und Ignore-Regeln:
-  keine Speicherung auf dem Server, Raspberry-Pi-Anbindung oder neuen Frameworks.
+- Aendere das Verhalten nur im Rahmen des aktuellen Nutzerauftrags. Bestehende
+  Regelberechnungen, JSON-Import/-Export und MIT-Lizenz erhalten. Keine neuen
+  Frameworks oder Raspberry-Pi-Bereitstellung ohne entsprechenden Auftrag.
+- Repository: `TeiChi85/dnd_Character_Manager`; Original:
+  `TaylorMouse/dnd_character_creator`.
 - Bewahre MIT-Lizenz, Copyright und Git-Historie des Originals.
 - Keine Regeldaten, Homebrew-Bücher, Charakterexporte, PDF-Vorlagen oder
   Zugangsdaten committen. `.gitignore` nicht mit `git add -f` umgehen.
@@ -17,11 +20,20 @@
 - Regeldaten nur aus einer vom Nutzer autorisierten lokalen Quelle verarbeiten;
   keine automatischen Downloads oder Uploads. Ignorierte Dateien sind nicht
   automatisch vor Zugriff durch Agenten oder andere Werkzeuge geschützt.
-- Kein npm-/pip-Setup für den normalen Start nötig. Verwende den lokalen
-  Python-HTTP-Server aus `DEVELOPMENT.md` und binde ihn an `127.0.0.1`.
-- Vorhandene Regressionstests: `cscript.exe //nologo tools\validate.js` unter
-  Windows nach der Datengenerierung. Bei fehlenden Daten oder ohne Windows
-  die Einschränkung nennen; einen ausgelassenen Test nie als bestanden melden.
+- Der reine Offline-Start benoetigt kein npm-/pip-Setup. Fuer Flask die vorhandene
+  `.venv` nutzen bzw. erstellen und `server/requirements.txt` installieren;
+  Start im Repository: `.\.venv\Scripts\python.exe -m server.app`.
+  Beide lokalen Server aus `DEVELOPMENT.md` an `127.0.0.1` binden (Standard 8000).
+- Tests: Python `-m unittest discover -s server -t . -v`; Node ohne npm-Pakete:
+  `tools/validate_server_frontend.mjs`, `tools/validate_theme.mjs` und
+  `tools/validate_class_loading.mjs`. Letzterer verwendet die bestehende
+  Frontend-Testumgebung mit synthetischen Daten und kontrollierter Antwortreihenfolge.
+  `tools/validate_live_library.mjs` ausschliesslich gegen einen separaten
+  Testserver auf 127.0.0.1:8001 mit temporaerem Speicher ausserhalb des Repositorys.
+- Windows-Regelsuite: `cscript.exe //nologo tools\validate.js` nach lokaler
+  Datengenerierung (`CC_5ETOOLS_DATA` oder expliziter Datenpfad). Keine Downloads.
+  Bei fehlenden Daten/Werkzeugen die Einschraenkung nennen; einen ausgelassenen
+  Test nie als bestanden melden. Aktuelle Baseline: `docs/TEST_BASELINE.md`.
 - Upstream-Hilfen für Packaging, Dropbox, Git-Hooks oder Public-Sync nicht
   automatisch ausführen; sie gehören nicht zum Entwicklungsstart.
 - Vor einem Commit `git diff --cached --name-only` und den Diff prüfen.

@@ -46,13 +46,13 @@ Codex ist das Entwicklungswerkzeug.
 
 ## 2. Repository klonen und in VS Code öffnen
 
-Voraussetzung: Der GitHub-Fork `TeiChi85/CharacterManager` wurde angelegt.
+Voraussetzung: Zugriff auf den GitHub-Fork `TeiChi85/dnd_Character_Manager`.
 
 ```powershell
 New-Item -ItemType Directory -Force "$HOME\source" | Out-Null
 Set-Location "$HOME\source"
-git clone https://github.com/TeiChi85/CharacterManager.git
-Set-Location CharacterManager
+git clone https://github.com/TeiChi85/dnd_Character_Manager.git
+Set-Location dnd_Character_Manager
 git remote add upstream https://github.com/TaylorMouse/dnd_character_creator.git
 code .
 ```
@@ -115,6 +115,26 @@ in `homebrew/` und neben bzw. oberhalb des Datenordners nach passenden JSON-Date
 
 ## 4. Entwicklungsserver starten und Browser öffnen
 
+Fuer die gemeinsame Bibliothek den optionalen Flask-Server im Repository-Stamm
+starten (vorhandene `.venv` weiterverwenden):
+
+```powershell
+# Nur bei neuer Einrichtung:
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r server\requirements.txt
+# Normaler Start:
+.\.venv\Scripts\python.exe -m server.app
+```
+
+Flask liefert Anwendung und API unter <http://127.0.0.1:8000/> aus,
+ohne Debugger/Reload und nur auf Loopback. Private JSON-Dateien, Backups und
+Papierkorb liegen standardmaessig unter `%USERPROFILE%\.character-manager\characters`,
+konfigurierbar ueber `CC_CHARACTER_STORAGE` ausserhalb des Repositorys.
+Details: [server/README.md](server/README.md). Keine Authentifizierung;
+keine Freigabe im Internet. Die Regeldaten muessen weiterhin lokal generiert sein.
+
+Alternativ fuer die statische Anwendung ohne gemeinsame Bibliothek:
+
 Im Repository-Stamm:
 
 ```powershell
@@ -128,6 +148,29 @@ Es gibt keinen Build-Schritt; nach Änderungen Browser neu laden, bei alten
 Dateien `Strg+F5` verwenden. Alternativ funktioniert direktes Öffnen von `index.html`.
 
 ## 5. Vorhandene Tests ausführen
+
+Backend ohne D&D-Regeldaten, mit isolierten temporaeren Speichern:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s server -t . -v
+```
+
+Frontend mit Node.js 18+ (keine npm-Pakete, synthetische Daten/simulierter DOM):
+
+```powershell
+node tools\validate_server_frontend.mjs
+node tools\validate_theme.mjs
+node tools\validate_class_loading.mjs
+```
+
+Die Klassenlade-Suite prueft den echten Event-Handler und Loader mit gezielt
+vertauschten Script-Antworten; sie fuehrt beim Import auch die Frontend-Suite aus.
+Der optionale Live-Test `node tools\validate_live_library.mjs` darf nur gegen
+einen eigenen Flask-Testserver auf `127.0.0.1:8001` mit isoliertem temporaerem
+`CC_CHARACTER_STORAGE` laufen, niemals gegen echte Charaktere. Er erzeugt
+synthetische Charaktere und hinterlaesst deren Recovery-Archive im Test-Speicher.
+Eine konkrete isolierte Start-/Stop-Anleitung steht in
+[docs/TEST_BASELINE.md](docs/TEST_BASELINE.md).
 
 Nach erfolgreicher Datengenerierung in einem zweiten PowerShell-Fenster:
 
@@ -143,6 +186,8 @@ unverändert ausführbar. Die ursprüngliche Vorbereitung führte weder eine
 Datengenerierung noch Windows-Tests aus. Die später tatsächlich ausgeführten
 Backend-, Frontend- und Windows-Läufe stehen in
 [server/TEST_RESULTS.md](server/TEST_RESULTS.md).
+Die fuer PR 01 neu ausgefuehrten Vorher-/Nachher-Laeufe, Exitcodes und
+Einschraenkungen stehen getrennt in [docs/TEST_BASELINE.md](docs/TEST_BASELINE.md).
 
 Im Browser zusätzlich einen Charakter erstellen, als JSON außerhalb des
 Repos speichern, wieder laden und die Referenzseiten prüfen. PDF-Export ist

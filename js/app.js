@@ -15,8 +15,10 @@
   }
   var state=freshCharacter();
   var serverLibrary=null;
+  var featureLoadGeneration=0;
   // Wipe every character field in place (keeping the same state object) and reset the form controls.
   function resetCharacter(){
+    featureLoadGeneration++;
     charFileHandle=null;                    // a new character is not tied to a file
     var f=freshCharacter(),k;
     for(k in state)if(state.hasOwnProperty(k))delete state[k];
@@ -245,6 +247,7 @@
 
   /* ---------- screens ---------- */
   function showEdition(){
+    featureLoadGeneration++;
     $("screen-build").classList.add("hidden");$("screen-edition").classList.remove("hidden");
     renderRecents();
     if(serverLibrary)serverLibrary.refresh();
@@ -349,6 +352,15 @@
     s.onload=function(){cb(window.CC_FEATURE_DATA[slug]);};
     s.onerror=function(){cb(null);};
     document.head.appendChild(s);
+  }
+  // Only the current selection may apply data. A slug alone cannot distinguish
+  // Fighter -> Wizard -> Fighter or a new character using the same class.
+  // Keep the raw loader independent: server-library preparation only warms cache.
+  function loadSelectedFeatureData(slug,cb){
+    var generation=++featureLoadGeneration;
+    loadFeatureData(slug,function(fd){
+      if(generation===featureLoadGeneration&&state.slug===slug)cb(fd);
+    });
   }
 
   /* ---------- render ---------- */
@@ -4364,6 +4376,7 @@
     if(!o||o._app!=="dnd-cc"){alert("That doesn't look like a saved character file.");return;}
     if(!window.CCCharacterJSON)throw new Error("Character validation unavailable. Reload the application before importing.");
     window.CCCharacterJSON.validate(o);
+    featureLoadGeneration++;
     // Always restore onto fresh defaults, including nested fields in older saves.
     function merge(base,value){
       if(!base||!value||typeof base!=="object"||typeof value!=="object"||Array.isArray(base)||Array.isArray(value))return value;
@@ -4389,7 +4402,7 @@
     $("classSelect").value=state.slug||"";
     populateLevels();$("levelSelect").value=state.level;
     $("featTitle").textContent=state.className?state.className+" Features":"Class Features";
-    if(state.slug)loadFeatureData(state.slug,function(fd){state.fdata=fd;showBuild("sheet");});
+    if(state.slug)loadSelectedFeatureData(state.slug,function(fd){state.fdata=fd;showBuild("sheet");});
     else showBuild("class");
     rcRemember(charFileHandle);        // a no-op when the file came through the plain input
   }
@@ -4916,6 +4929,7 @@
   $("portraitFile").addEventListener("change",function(e){if(e.target.files&&e.target.files[0])processPortrait(e.target.files[0]);e.target.value="";});
 
   $("classSelect").addEventListener("change",function(e){
+    featureLoadGeneration++;
     var slug=e.target.value;
     if(!slug){state.className=null;state.slug=null;state.fdata=null;render();return;}
     var c=classesForEdition(state.edition).filter(function(x){return x.slug===slug;})[0];
@@ -4930,7 +4944,7 @@
     state.sheet=freshSheet();
     populateLevels();
     $("featTitle").textContent=c.name+" Features";
-    loadFeatureData(slug,function(fd){state.fdata=fd;render();});
+    loadSelectedFeatureData(slug,function(fd){state.fdata=fd;render();});
     render();
   });
   $("levelSelect").addEventListener("change",function(e){
