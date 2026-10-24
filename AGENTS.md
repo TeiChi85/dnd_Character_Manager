@@ -31,7 +31,11 @@
   und `tools/validate_rules_adapters.mjs` fuer die produktiven Core-/Engine-
   Berechnungen und synthetische Sheet-/Event-Integration ausfuehren.
   Schnittstellen und Grenzen: `docs/RULES_ARCHITECTURE.md`. Regeldatenaufbereitung
-  und UI bleiben in `app.js`; die Engine hat keinen DOM-/API-/State-Zugriff.
+  bleibt in `app.js`; die Engine hat keinen DOM-/API-/State-Zugriff.
+  UI-Factories in `js/ui/` erhalten State/UI/Derived und explizite Adapter vom
+  Controller. `docs/UI_ARCHITECTURE.md` beschreibt Rendering und DOM-Vertraege.
+  `node tools/validate_ui_components.mjs` prueft produktive UI-Module mit
+  synthetischen Daten, Events und eingefrorenem persistentem State.
   `tools/validate_character_state.mjs` prueft Defaults, Legacy-Normalisierung
   und Serialisierung. `js/core/character-state.js` besitzt den v1-Datenvertrag;
   `state.sheet` ist Gameplay, `uiState` und `derivedState` sind nicht persistent.
