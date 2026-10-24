@@ -24,18 +24,19 @@ function harness({inventory=[],features=[],conditions=[],edition='classic',activ
   const context=vm.createContext({window:{scrollTo(){}},document,console});
   vm.runInContext(`window.CC_CLASSES=[{slug:'synthetic',name:'Wizard'}];window.CC_SPELLS=[{name:'Placeholder',level:0,cls:{}}];window.CC_ITEMS=${JSON.stringify(inventory)};
     window.testFeatures=${JSON.stringify(features)};window.CC_CONDMODS={synthetic:${JSON.stringify(conditions)}};`,context);
-  for(const name of ['rules-core','rules-engine'])vm.runInContext(source(`js/core/${name}.js`),context);
+  vm.runInContext(source('js/character-validation.js'),context);
+  for(const name of ['rules-core','rules-engine','character-state'])vm.runInContext(source(`js/core/${name}.js`),context);
   const startup='initServerLibrary();\n  populateLevels();showEdition();showDataVersion();';
   const app=source('js/app.js');assert.ok(app.includes(startup));
   vm.runInContext(app.replace(startup,`
     featuresAndTraits=function(){return window.testFeatures;};
-    window.testApp={state:state,acInfo:acInfo,itemBonuses:itemBonuses,totalScore:totalScore,
+    window.testApp={state:state,derived:derivedState,ui:uiState,load:loadCharObj,reset:resetCharacter,acInfo:acInfo,itemBonuses:itemBonuses,totalScore:totalScore,
       attackRows:attackRows,abilitySaveDc:abilitySaveDc,fxTotals:fxTotals,renderSpells:renderSpells,renderSheet:renderSheet};
     // Route redraws to the real sheet; other wizard pages are outside this harness.
     render=renderSheet;
   `),context);
   vm.runInContext(`var S=window.testApp.state;S.slug='synthetic';S.className='Wizard';S.edition=${JSON.stringify(edition)};
-    S.level=5;S.hdFaces=8;S.fdata={classFeatures:[],subclasses:[]};
+    S.level=5;S.hdFaces=8;window.testApp.derived.fdata={classFeatures:[],subclasses:[]};
     S.abilities.override={Strength:16,Dexterity:18,Intelligence:18};
     S.equipment.inventory=${JSON.stringify(inventory)};S.sheet.active=${JSON.stringify(active)};
     window.CC_SPELLCAST={synthetic:{ability:'Intelligence',caster:'full'}};`,context);
@@ -139,4 +140,23 @@ for(const edition of ['classic','one']){
 const probe=spawnSync(process.execPath,[fileURLToPath(import.meta.url),'--regression-probe'],{encoding:'utf8'});
 assert.ifError(probe.error);eq(probe.status,1);
 assert.match(probe.stderr,/AssertionError/);checks++;
+// State normalization feeds the unchanged rules after import, reset and switching.
+for(const edition of ['classic','one']){
+  h=harness({edition,inventory:[gear[0],gear[1],blade]});
+  const fd={classFeatures:[],subclasses:[]};h.window.CC_FEATURE_DATA={synthetic:fd};
+  const saved=h.window.CCCharacterState.serialize(h.app.state);
+  saved.sheet.hpCurrent=3;saved.sheet.hpEdited=true;saved.sheet.res={'slot:1:0':true};
+  h.app.load(saved);eq(h.app.acInfo().total,20);eq(h.app.state.sheet.hpCurrent,3);
+  eq(h.app.attackRows().find(r=>r.name==='Synthetic Blade').hit,'+8');
+  h.app.ui.equipment.filterQ='draft';h.app.reset();eq(h.app.ui.equipment.filterQ,'');eq(h.app.derived.fdata,null);
+  h.app.load(saved);eq(h.app.acInfo().total,20);eq(h.app.state.sheet.res['slot:1:0'],true);
+  h.app.ui.sheet.invAdd='draft & keepsake';h.app.renderSheet();
+  assert.match(h.elements.get('sheetPanel').innerHTML,/id="invCustom"[^>]*value="draft &amp; keepsake"/);checks++;
+  eq(Object.hasOwn(h.window.CCCharacterState.serialize(h.app.state).sheet,'invAdd'),false);
+  h.elements.get('levelSelect').handlers.change({target:{value:'9'}});
+  eq(h.app.attackRows().find(r=>r.name==='Synthetic Blade').hit,'+9');eq(h.app.state.sheet.hpCurrent,3);
+  const next={...saved,name:'Next',equipment:{inventory:[]},sheet:{hpEdited:false},slug:'synthetic'};
+  h.app.load(next);eq(h.app.acInfo().total,14);eq(h.app.state.sheet.hpCurrent,23);
+  eq(h.app.state.sheet.res,{});eq(h.app.ui.equipment.filterQ,'');
+}
 console.log(`${checks} synthetic rules adapter checks passed`);

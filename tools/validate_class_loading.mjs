@@ -20,7 +20,7 @@ function session(){
     },
     check(slug,data){
       assert.equal(select.value,slug);assert.equal(h.app.state.slug,slug||null);
-      assert.equal(h.app.state.fdata,data);
+      assert.equal(h.app.derived.fdata,data);
       const rendered=h.window.__renders.at(-1);
       assert.equal(rendered.slug,slug||null);assert.equal(rendered.fdata,data);
       assert.equal(rendered.className,h.app.state.className);

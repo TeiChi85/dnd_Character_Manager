@@ -68,7 +68,7 @@ class ApiTests(unittest.TestCase):
         return response
 
     def test_fixture_covers_exact_export_keys(self):
-        source = (ROOT / "js" / "app.js").read_text(encoding="utf-8")
+        source = (ROOT / "js" / "core" / "character-state.js").read_text(encoding="utf-8")
         keys = json.loads(re.search(r"var SAVE_KEYS=(\[.*?\]);", source).group(1))
         self.assertEqual(set(self.character), set(keys) | {"_app", "_v"})
 

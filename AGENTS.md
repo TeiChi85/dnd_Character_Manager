@@ -32,6 +32,11 @@
   Berechnungen und synthetische Sheet-/Event-Integration ausfuehren.
   Schnittstellen und Grenzen: `docs/RULES_ARCHITECTURE.md`. Regeldatenaufbereitung
   und UI bleiben in `app.js`; die Engine hat keinen DOM-/API-/State-Zugriff.
+  `tools/validate_character_state.mjs` prueft Defaults, Legacy-Normalisierung
+  und Serialisierung. `js/core/character-state.js` besitzt den v1-Datenvertrag;
+  `state.sheet` ist Gameplay, `uiState` und `derivedState` sind nicht persistent.
+  Details/Feldklassifikation: `docs/CHARACTER_STATE.md`. Importfehler duerfen
+  Charakter, Dateihandle oder Serveridentitaet nicht verwerfen.
   Die Klassenlade-Suite verwendet die Frontend-Testumgebung mit synthetischen
   Daten und kontrollierter Antwortreihenfolge. Sie importiert ausserdem den
   Frontend-Harness und fuehrt dessen Tests erneut aus.

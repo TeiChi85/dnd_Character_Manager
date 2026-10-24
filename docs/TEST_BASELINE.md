@@ -236,3 +236,43 @@ Keine manuelle Browser-/PDF-/Dateipicker-Abnahme, kein neuer Live-Library-Test
 und kein Linux-Lauf lokal. Die Windows-/Ubuntu-CI wird nach dem Push am PR
 geprueft; ihr Ergebnis wird im abschliessenden Bericht mit dem PR verlinkt.
 Die lokalen Ergebnisse oben sind keine Aussage ueber einen GitHub-Actions-Lauf.
+
+## PR05: Character State / Serialization
+
+Am **24.10.2026** nach dem bestaetigten Merge von PR04 (#6) auf `main`
+gestartet. Basis: `f42d3ec`, Branch `refactor/05-state-serialization`.
+Windows, Node 24.22.1, Python 3.15.1 aus `.venv`. Keine Downloads, Generierung
+oder Commits von Regeldaten; derselbe vorhandene lokale Datensatz wie in PR04.
+
+| Befehl | Vorher | Nachher | Exitcode |
+| --- | --- | --- | --- |
+| `node tools/validate_rules.mjs` | 1.533 Checks, 0 Fehler, 242/242 Unterklassen | 1.533 Checks, 0 Fehler, 242/242 Unterklassen | jeweils 0 |
+| `cscript.exe //nologo tools\validate.js` | 1.533 Checks, 0 Fehler, 242/242 Unterklassen | 1.533 Checks, 0 Fehler, 242/242 Unterklassen | jeweils 0 |
+| `node tools/validate_character_state.mjs` | Neu | 90 Checks bestanden | 0 |
+| `node tools/validate_server_frontend.mjs` | Historisch 26 Szenarien | 37 Szenarien bestanden | 0 |
+| `node tools/validate_class_loading.mjs` | Historisch 8 Szenarien | 8 bestanden, plus erneut importierte 37 Frontendszenarien | 0 |
+| `node tools/validate_rules_adapters.mjs` | Historisch 52 Checks | 82 Checks bestanden | 0 |
+| `node tools/validate_rules_core.mjs` | Historisch 172 Checks | 172 bestanden | 0 |
+| `node tools/validate_rules_engine.mjs` | Historisch 92 Checks | 92 bestanden | 0 |
+| `node tools/validate_theme.mjs` | Historisch 14 Szenarien | 14 bestanden | 0 |
+| `node tools/validate_rules.mjs --self-test` | Historisch bestanden | Smoke, Missing-Data- und Failure-Exit-Probes bestanden | 0 |
+| `.\.venv\Scripts\python.exe -m unittest discover -s server -t . -v` | Historisch 39 Tests | 39 bestanden | 0 |
+
+Historische Werte sind keine neuen Vorher-Laeufe; nur die beiden vollstaendigen
+Regel-Runner wurden in diesem Auftrag vor und nach der Implementierung ausgefuehrt.
+Die Gameplay-/Rules-Erwartungen bleiben unveraendert. Zwei bisherige String-Suchen
+pruefen echte Serialize-/Normalize-Ergebnisse fuer Proficiency-Persistierung und
+Migration. Der Python-Fixture-Test liest den verlegten Feldvertrag; die
+Derived-Daten werden ueber einen separaten Testzugriff bereitgestellt.
+
+Neue Tests decken v1-Roundtrips, sichere Zusatzfelder, Detached Snapshots,
+UI-/Gameplay-Dirty-State, Fehler-/Handle-Rollback, verspätete Dateileser und
+Klassenantworten sowie Rules nach Import/Reset/Level-/Charakterwechsel ab.
+Keine fachliche Aenderung an Core, Engine, Flask-API oder Python-Validierung.
+`server-library.js` blieb unveraendert.
+
+Homebrew in beiden vollstaendigen Laeufen mangels Buch uebersprungen. Keine
+manuelle Browser-/Dateipicker-/PDF-Pruefung und kein erneuter Live-Library-Test;
+die synthetischen Harnesses ersetzen Browser-APIs und Teile des UI-Startablaufs.
+Windows-/Ubuntu-CI wird am PR nach dem Push ueberwacht und im Abschlussbericht
+verlinkt. Der lokale Cache `Microsoft/` bleibt ausserhalb aller Commits.

@@ -15,6 +15,8 @@ if(!Object.keys){Object.keys=function(o){var r=[];for(var k in o)if(o.hasOwnProp
 if(!String.prototype.trim){String.prototype.trim=function(){return this.replace(/^\s+|\s+$/g,"");};}
 if(!String.prototype.localeCompare){String.prototype.localeCompare=function(b){return this<b?-1:(this>b?1:0);};}
 
+if(!Array.isArray){Array.isArray=function(v){return Object.prototype.toString.call(v)==="[object Array]";};}
+
 // ---------- DOM mock ----------
 function El(){this.innerHTML="";this.value="";this.textContent="";this.style={};this.checked=false;
   this.classList={toggle:function(){},add:function(){},remove:function(){},contains:function(){return false;}};}
@@ -45,6 +47,8 @@ for(var i=0;i<dataFiles.length;i++) eval(readFile(ROOT+"resources\\"+dataFiles[i
 var featDir=fso.GetFolder(ROOT+"resources\\features"),fe=new Enumerator(featDir.Files);
 for(;!fe.atEnd();fe.moveNext()){var f=fe.item();if(/\.js$/i.test(f.Name))eval(readFile(f.Path));}
 
+eval(readFile(ROOT+"js\\character-validation.js"));
+eval(readFile(ROOT+"js\\core\\character-state.js"));
 eval(readFile(ROOT+"js\\core\\rules-core.js"));
 eval(readFile(ROOT+"js\\core\\rules-engine.js"));
 // Count actual calls: passing via app.js fallbacks must not look like core coverage.
@@ -59,7 +63,7 @@ trackModule(window.CCRulesCore,moduleCalls.core);
 trackModule(window.CCRulesEngine,moduleCalls.engine);
 var app=readFile(ROOT+"js\\app.js");
 app=app.replace("populateLevels();showEdition();",
- "populateLevels();window.__cc={state:state,render:render,renderSheet:renderSheet,"+
+ "populateLevels();window.__cc={state:state,derived:derivedState,ui:uiState,render:render,renderSheet:renderSheet,"+
  "profBonus:profBonus,maxHP:maxHP,abMod:abMod,totalScore:totalScore,spellInfo:spellInfo,"+
  "proficientSkills:proficientSkills,savingProfs:savingProfs,computeAC:computeAC,"+
  "actionEconomy:actionEconomy,classSpellList:classSpellList,SKILL_ABILITY:SKILL_ABILITY,"+
@@ -90,7 +94,7 @@ app=app.replace("populateLevels();showEdition();",
  "itemBonuses:itemBonuses,itemEffectsHtml:itemEffectsHtml,saveBonus:saveBonus,acInfo:acInfo,equipInfo:equipInfo,fxMods:fxMods,"+
  "featSpellExtras:featSpellExtras,featSpellBlock:featSpellBlock};");
 eval(app);
-var C=window.__cc,S=C.state;
+var C=window.__cc,S=C.state,D=C.derived;
 
 // ---------- test bookkeeping ----------
 var pass=0,fails=[];
@@ -118,10 +122,10 @@ function setup(slug,name,level){
   var ci=null,L=window.CC_CLASSES;
   for(var i=0;i<L.length;i++)if(L[i].slug===slug){ci=L[i];break;}
   S.source=ci?ci.source:"PHB";S.hdFaces=ci?ci.hdFaces:8;
-  S.fdata=window.CC_FEATURE_DATA[slug];
+  D.fdata=window.CC_FEATURE_DATA[slug];
   S.subclassName=null;S.choices={};S.raceChoices={};S.race=null;S.raceLineage=null;
   S.background=null;S.bgIsCustom=false;S.bgChoices={};S.customLanguages=[];
-  S.spells={cantrips:[],spells:[],levelFilter:"",q:""};
+  S.spells={cantrips:[],spells:[]};
   S.equipment={mode:"equipment",starting:{},startingAdded:false,inventory:[],currency:{pp:0,gp:0,ep:0,sp:0,cp:0},filterType:"",filterQ:""};
   S.sheet={hpCurrent:null,hpTemp:"",res:{},hpEdited:false,invQ:"",invAdd:"",xp:"",inspiration:false,deathSucc:0,deathFail:0,dark:false,acOther:"",acOverride:"",acEditOpen:false,active:{},conc:""};
   S.manualHp=null;
@@ -322,7 +326,7 @@ check("  Wood Elf lineage speed 35",C.speedInfo().total,35);
 section("6g. Reaction and bonus-action spells reach the action economy");
 setup("wizard-classic","Wizard",10);
 S.subclassName="School of Divination";
-S.spells={cantrips:[],spells:["Shield|PHB","Silvery Barbs|SCC","Feather Fall|PHB","Absorb Elements|XGE","Misty Step|PHB","Fireball|PHB"],levelFilter:"",q:""};
+S.spells={cantrips:[],spells:["Shield|PHB","Silvery Barbs|SCC","Feather Fall|PHB","Absorb Elements|XGE","Misty Step|PHB","Fireball|PHB"]};
 var _ae=C.actionEconomy();
 function _has(list,nm){for(var i=0;i<list.length;i++)if(list[i].name===nm)return true;return false;}
 checkTrue("  Shield is a reaction",_has(_ae.reaction,"Shield"));
@@ -822,7 +826,7 @@ section("7m. Features referenced by other features (refClassFeature / refSubclas
 // Those must reach the sheet's Features & Traits, not just the wizard page.
 function nestedFor(slug,name,sub,lvl){
   setup(slug,name,lvl);S.subclassName=sub;
-  var raw=[],fd=S.fdata;
+  var raw=[],fd=D.fdata;
   (fd.classFeatures||[]).forEach(function(f){if(f.level<=lvl)raw.push({entries:f.entries,_origin:"class feature"});});
   var ch=(fd.subclasses||[]).filter(function(s){return s.name===sub;})[0];
   if(ch)(ch.features||[]).forEach(function(f){if(f.level<=lvl)raw.push({entries:f.entries,_origin:"subclass feature"});});
@@ -872,7 +876,7 @@ checkTrue("  the Tail's reaction text is in the card",card.indexOf("swipe your t
 checkTrue("  the Unarmed Strike is described too",card.indexOf("never less than 1")>=0);
 // a caster's spell rows expand to the full spell entry
 setup("wizard-classic","Wizard",5);
-S.spells={cantrips:["Fire Bolt|PHB"],spells:["Fireball|PHB"],levelFilter:"",q:""};
+S.spells={cantrips:["Fire Bolt|PHB"],spells:["Fireball|PHB"]};
 var wcard=C.actionsCardHtml();
 checkTrue("  a cantrip row expands",wcard.indexOf("Fire Bolt")>=0&&wcard.indexOf("Casting Time:")>=0);
 checkTrue("  a leveled spell row shows At Higher Levels",wcard.indexOf("Fireball")>=0&&wcard.indexOf("At Higher Levels")>=0);
@@ -965,7 +969,7 @@ if(shift){
 
 // concentration is limited to spells that need it
 setup("wizard-classic","Wizard",5);
-S.spells={cantrips:["Fire Bolt|PHB"],spells:["Haste|PHB","Fireball|PHB"],levelFilter:"",q:""};
+S.spells={cantrips:["Fire Bolt|PHB"],spells:["Haste|PHB","Fireball|PHB"]};
 var co=C.concOptions();
 check("  only concentration spells are offered",co.length,1);
 check("  ...which is Haste",co[0].label,"Haste (3rd)");
@@ -1217,7 +1221,7 @@ S.customProficiencies={armor:[],weapons:[],tools:[]};
 checkTrue("  the weapons dropdown offers Longbow",C.profOpts("weapons").indexOf(">Longbow<")>=0);
 S.customProficiencies.weapons.push("Longbow");
 checkTrue("  ...and stops offering it once added",C.profOpts("weapons").indexOf(">Longbow<")<0);
-var blk=C.profBlock("Weapons","weapons",S.fdata.proficiencies.weapons);
+var blk=C.profBlock("Weapons","weapons",D.fdata.proficiencies.weapons);
 checkTrue("  the block shows the added proficiency as a removable chip",blk.indexOf("Longbow")>=0&&blk.indexOf("prof-x")>=0);
 checkTrue("  ...alongside the granted proficiencies",blk.toLowerCase().indexOf("martial")>=0);
 check("  customProfs reports the addition",C.customProfs("weapons").join(","),"Longbow");
@@ -1231,8 +1235,9 @@ checkTrue("  the armor dropdown no longer offers Heavy armor",C.profOpts("armor"
 C.render();
 checkTrue("  the sheet renders with added proficiencies",_els["sheetPanel"].innerHTML.indexOf("Sheet error")<0);
 // persistence: the additions are saved and reloaded with the character
-checkTrue("  customProficiencies is in the save keys",app.indexOf('"customProficiencies"')>=0);
-checkTrue("  ...and older saves are migrated on load",app.indexOf('if(!state.customProficiencies)state.customProficiencies=')>=0);
+checkTrue("  customProficiencies is in the save keys",!!window.CCCharacterState.serialize(S).customProficiencies);
+var migratedProfs=window.CCCharacterState.normalize({_app:"dnd-cc",_v:1}).customProficiencies;
+checkTrue("  ...and older saves are migrated on load",migratedProfs.armor.length===0&&migratedProfs.weapons.length===0&&migratedProfs.tools.length===0);
 checkTrue("  the PDF export folds them in after the granted ones",app.indexOf('function profLine(txt,key)')>=0);
 
 // =====================================================================
@@ -1422,8 +1427,8 @@ checkTrue("  Minotaur speaks Minotaur",raceLangs("Minotaur").fixed.indexOf("Mino
 checkTrue("  a race with no named extra language gets a free choice",raceLangs("Tabaxi").any>=1);
 // a progression whose name is not a feature name still gets a picker
 setup("fighter-classic","Fighter",5);S.subclassName="Rune Knight";
-var rk=(S.fdata.subclasses||[]).filter(function(s){return s.name==="Rune Knight";})[0];
-var rkOrph=C.orphanProgressions(S.fdata,rk,C.optProgMap(S.fdata,rk));
+var rk=(D.fdata.subclasses||[]).filter(function(s){return s.name==="Rune Knight";})[0];
+var rkOrph=C.orphanProgressions(D.fdata,rk,C.optProgMap(D.fdata,rk));
 check("  Rune Knight exposes an orphan 'Runes' progression",rkOrph.length&&rkOrph[0].name,"Runes");
 check("  ...that first grants runes at level 3",rkOrph[0].level,3);
 C.render();
@@ -1432,11 +1437,11 @@ check("  the features page shows two rune dropdowns",(fh.match(/data-group="Rune
 checkTrue("  choosing runes is a valid, persisted choice",!!C.validChoiceKeys()["Runes:0"]&&!!C.validChoiceKeys()["Runes:1"]);
 // the same mechanism now covers Battle Master maneuvers
 setup("fighter-classic","Fighter",7);S.subclassName="Battle Master";
-var bm=(S.fdata.subclasses||[]).filter(function(s){return s.name==="Battle Master";})[0];
-check("  Battle Master's Maneuvers progression is picked up too",C.orphanProgressions(S.fdata,bm,C.optProgMap(S.fdata,bm))[0].name,"Maneuvers");
+var bm=(D.fdata.subclasses||[]).filter(function(s){return s.name==="Battle Master";})[0];
+check("  Battle Master's Maneuvers progression is picked up too",C.orphanProgressions(D.fdata,bm,C.optProgMap(D.fdata,bm))[0].name,"Maneuvers");
 // a normal same-named progression (Sorcerer Metamagic) is NOT treated as an orphan
 setup("sorcerer-classic","Sorcerer",6);
-check("  Metamagic (feature == progression) is not an orphan",C.orphanProgressions(S.fdata,null,C.optProgMap(S.fdata,null)).length,0);
+check("  Metamagic (feature == progression) is not an orphan",C.orphanProgressions(D.fdata,null,C.optProgMap(D.fdata,null)).length,0);
 
 // =====================================================================
 section("7ad. Fighting styles change the numbers");

@@ -1,30 +1,24 @@
 (function(){
   "use strict";
-  function freshEquipment(){return {mode:"equipment",starting:{},startingAdded:false,inventory:[],currency:{pp:0,gp:0,ep:0,sp:0,cp:0},filterType:"",filterQ:""};}
-  function freshSheet(){return {hpCurrent:null,hpTemp:"",res:{},hpEdited:false,invQ:"",invAdd:"",xp:"",inspiration:false,deathSucc:0,deathFail:0,dark:false,acOther:"",acOverride:"",acEditOpen:false,active:{},conc:""};}
-  // Single source of truth for a pristine character. Used at start-up and by "start over".
-  function freshCharacter(){
-    return {edition:null,name:"",className:null,source:null,slug:null,hdFaces:null,level:1,manualHp:null,subclassName:null,fdata:null,choices:{},openPanels:{},
-            background:null,bgIsCustom:false,bgCustomName:"",bgCustomDesc:"",bgChoices:{},details:{alignment:"",faith:"",lifestyle:""},
-            race:null,raceLineage:null,raceChoices:{},
-            abilities:{method:"pointbuy",base:{Strength:8,Dexterity:8,Constitution:8,Intelligence:8,Wisdom:8,Charisma:8},assign:{},other:{},override:{},rolled:null},
-            equipment:freshEquipment(),
-            spells:{cantrips:[],spells:[],levelFilter:"",q:""},customLanguages:[],
-            customProficiencies:{armor:[],weapons:[],tools:[]},customDefences:[],portrait:null,
-            sheet:freshSheet()};
-  }
-  var state=freshCharacter();
+  var characterModel=window.CCCharacterState;
+  function freshEquipment(){return characterModel.createEquipment();}
+  function freshSheet(){return characterModel.createGameplay();}
+  function freshCharacter(){return characterModel.createDefault();}
+  function freshView(){return {screen:"edition",currentStep:"class",openPanels:{},equipment:{filterType:"",filterQ:""},
+    spells:{levelFilter:"",q:"",preview:""},sheet:{invQ:"",invAdd:"",acEditOpen:false}};}
+  function replaceState(target,value){Object.keys(target).forEach(function(k){delete target[k];});Object.keys(value).forEach(function(k){target[k]=value[k];});}
+  var state=freshCharacter(),uiState=freshView(),derivedState={fdata:null};
   var serverLibrary=null;
   var featureLoadGeneration=0;
+  var importGeneration=0,fileReadGeneration=0;
   var CCRules = (typeof window !== "undefined" && window.CCRulesCore) || null;
   var rulesEngine=window.CCRulesEngine;
   // Wipe every character field in place (keeping the same state object) and reset the form controls.
   function resetCharacter(){
     featureLoadGeneration++;
+    replaceState(uiState,freshView());derivedState.fdata=null;
     charFileHandle=null;                    // a new character is not tied to a file
-    var f=freshCharacter(),k;
-    for(k in state)if(state.hasOwnProperty(k))delete state[k];
-    for(k in f)state[k]=f[k];
+    replaceState(state,freshCharacter());
     var n=$("charName");if(n)n.value="";
     var cn=$("bgCustomName");if(cn)cn.value="";
     var cd=$("bgCustomDesc");if(cd)cd.value="";
@@ -238,7 +232,7 @@
     }
     if(t==="refClassFeature"||t==="refSubclassFeature"){
       var key=e.classFeature||e.subclassFeature;
-      var ref=state.fdata&&state.fdata.refLookup?state.fdata.refLookup[key]:null;
+      var ref=derivedState.fdata&&derivedState.fdata.refLookup?derivedState.fdata.refLookup[key]:null;
       if(!ref)return "";
       var h=ref.name?"<p><span class='sub-h'>"+esc(ref.name)+"</span></p>":"";
       return h+(ref.entries||[]).map(renderEntry).join("");
@@ -254,11 +248,13 @@
   /* ---------- screens ---------- */
   function showEdition(){
     featureLoadGeneration++;
+    uiState.screen="edition";
     $("screen-build").classList.add("hidden");$("screen-edition").classList.remove("hidden");
     renderRecents();
     if(serverLibrary)serverLibrary.refresh();
   }
   function setStep(step){
+    uiState.currentStep=step;
     $("step-class").classList.toggle("hidden",step!=="class");
     $("step-background").classList.toggle("hidden",step!=="background");
     $("step-species").classList.toggle("hidden",step!=="species");
@@ -276,7 +272,7 @@
     render();               // always refresh the page we're navigating to with the latest state
     window.scrollTo(0,0);
   }
-  function showBuild(step){$("screen-edition").classList.add("hidden");$("screen-build").classList.remove("hidden");setStep(step||"class");}
+  function showBuild(step){uiState.screen="build";$("screen-edition").classList.add("hidden");$("screen-build").classList.remove("hidden");setStep(step||"class");}
 
   /* The core classes first, then the rest grouped by where they come from - the sidekick
      classes from Tasha's and the Mystic from Unearthed Arcana - so it is obvious at a
@@ -406,7 +402,7 @@
     if(!hasClass)note.textContent="";
     else if(state.manualHp!=null)note.textContent="Manual HP set. (Auto would be "+auto+".)";
     else note.textContent="Auto HP shown without a Constitution modifier — that comes in a later step. Use Manage HP to override.";
-    if(hasClass&&state.fdata)renderFeatures();
+    if(hasClass&&derivedState.fdata)renderFeatures();
     renderBackground();
     renderDetails();
     renderRace();
@@ -421,7 +417,7 @@
   function bgFilled(groupKey,count){var n=0;for(var i=0;i<count;i++){if(state.bgChoices[groupKey+":"+i])n++;}return n;}
 
   function validChoiceKeys(){
-    var fd=state.fdata,lvl=state.level,keys={};
+    var fd=derivedState.fdata,lvl=state.level,keys={};
     if(!fd)return keys;
     var chosen=state.subclassName?fd.subclasses.filter(function(s){return s.name===state.subclassName;})[0]:null;
     var progMap=optProgMap(fd,chosen);
@@ -462,7 +458,7 @@
 
   // drop class choices (and subclass) no longer valid at the current level. Background choices live in state.bgChoices and are untouched here.
   function pruneChoices(){
-    var fd=state.fdata;if(!fd)return;
+    var fd=derivedState.fdata;if(!fd)return;
     var gains=fd.classFeatures.filter(function(f){return f.gainSubclassFeature;}).map(function(f){return f.level;});
     var subLvl=gains.length?Math.min.apply(null,gains):null;
     if(subLvl&&state.level<subLvl)state.subclassName=null;
@@ -495,7 +491,7 @@
   }
 
   function choiceSelectsHtml(groupKey,pool,count,label){
-    var fd=state.fdata;
+    var fd=derivedState.fdata;
     var chosen=[];for(var i=0;i<count;i++)chosen.push(state.choices[groupKey+":"+i]||"");
     var picked=chosen.filter(Boolean).length;
     var head='<div class="origin-picker"><label>'+esc(label)+' ('+picked+'/'+count+')'+
@@ -647,8 +643,8 @@
   }
 
   function panelHtml(name,levelLabel,choicesN,badge,body,key,pending){
-    if(state.openPanels[key]===undefined)state.openPanels[key]=(pending||name==="Hit Points");
-    var open=state.openPanels[key];
+    if(uiState.openPanels[key]===undefined)uiState.openPanels[key]=(pending||name==="Hit Points");
+    var open=uiState.openPanels[key];
     var sub=(choicesN>0?(choicesN+" Choice"+(choicesN>1?"s":"")+" • "):"")+levelLabel;
     var dot=pending?'<span class="fx-dot">!</span>':"";
     return '<div class="feature'+(open?"":" collapsed")+(pending?" needs":"")+'" data-key="'+esc(key)+'">'+
@@ -695,7 +691,7 @@
     var count=NUMWORD[m[1].toLowerCase()]||1;
     var again=/again at (\d+)(?:st|nd|rd|th) level/i.exec(txt);
     if(again&&state.level>=parseInt(again[1],10))count+=1;
-    var pool=ALL_SKILLS,fd=state.fdata;
+    var pool=ALL_SKILLS,fd=derivedState.fdata;
     if(/list of skills available to/i.test(txt)&&fd&&fd.proficiencies&&fd.proficiencies.skills){
       pool=fd.proficiencies.skills.from;
     }else{
@@ -804,7 +800,7 @@
   function stripOptions(entries){return (entries||[]).filter(function(e){return !(e&&typeof e==="object"&&e.type==="options");});}
 
   function renderFeatures(){
-    var fd=state.fdata,lvl=state.level;
+    var fd=derivedState.fdata,lvl=state.level;
     var chosen=state.subclassName?fd.subclasses.filter(function(s){return s.name===state.subclassName;})[0]:null;
     var progMap=optProgMap(fd,chosen);
 
@@ -908,7 +904,7 @@
       sel.addEventListener("click",function(e){e.stopPropagation();});
       sel.addEventListener("change",function(e){
         state.choices["sidekickRole"]=e.target.value||"";
-        state.spells={cantrips:[],spells:[],levelFilter:"",q:""};   // a new role means a new list
+        state.spells={cantrips:[],spells:[]};uiState.spells=freshView().spells;   // a new role means a new list
         render();
       });
     });
@@ -956,7 +952,7 @@
       h.addEventListener("click",function(){
         var panel=h.parentNode,k=panel.getAttribute("data-key");
         panel.classList.toggle("collapsed");
-        state.openPanels[k]=!panel.classList.contains("collapsed");
+        uiState.openPanels[k]=!panel.classList.contains("collapsed");
       });
     });
   }
@@ -1233,7 +1229,7 @@
       var rf=featByName(raceFeatName(i));
       if(rf)out.push({ft:rf,base:"race:feat"+i+":",store:state.raceChoices});
     }
-    var fd=state.fdata;
+    var fd=derivedState.fdata;
     if(fd)(fd.classFeatures||[]).forEach(function(f){
       if(f.name!=="Ability Score Improvement"||f.level>state.level)return;
       if(state.choices["asi:"+f.level+":mode"]!=="feat")return;
@@ -1765,8 +1761,8 @@
       });
       customAsiPicks().forEach(function(p){add(p.ability,"Custom origin",p.amount);});
     }
-    if(state.fdata){
-      state.fdata.classFeatures.forEach(function(f){
+    if(derivedState.fdata){
+      derivedState.fdata.classFeatures.forEach(function(f){
         if(f.name!=="Ability Score Improvement"||f.level>state.level)return;
         if(state.choices["asi:"+f.level+":mode"]!=="asi")return;
         var dist=state.choices["asi:"+f.level+":dist"]||"2";
@@ -1774,7 +1770,7 @@
         else{var a0=state.choices["asi:"+f.level+":a0"],a1=state.choices["asi:"+f.level+":a1"];if(a0)add(a0,"ASI (level "+f.level+")",1);if(a1)add(a1,"ASI (level "+f.level+")",1);}
       });
       // half-feats (Slasher, Resilient, Actor, ...) grant their own increases
-      state.fdata.classFeatures.forEach(function(f){
+      derivedState.fdata.classFeatures.forEach(function(f){
         if(f.name!=="Ability Score Improvement"||f.level>state.level)return;
         if(state.choices["asi:"+f.level+":mode"]!=="feat")return;
         featAsiPicks(f.level).forEach(function(p){add(p.ability,p.from+" (level "+f.level+")",p.amount);});
@@ -2209,15 +2205,15 @@
 
   var ITEM_TYPES=["Armor","Weapon","Potion","Ring","Rod","Scroll","Staff","Wand","Wondrous","Other Gear"];
   function renderItemBrowser(){
-    var eq=state.equipment;
+    var eq=uiState.equipment;
     var html='<input type="text" id="itemSearch" placeholder="Search items…" value="'+esc(eq.filterQ||"")+'">';
     html+='<div class="type-filters"><button class="tf'+(eq.filterType===""?" active":"")+'" data-t="">ALL</button>'+
       ITEM_TYPES.map(function(t){return '<button class="tf'+(eq.filterType===t?" active":"")+'" data-t="'+esc(t)+'">'+esc(t.toUpperCase())+"</button>";}).join("")+"</div>";
     html+='<div id="itemResults"></div>';
     $("itemBrowser").innerHTML=html;
     var si=$("itemSearch");
-    si.addEventListener("input",function(){state.equipment.filterQ=si.value;renderItemResults();});
-    Array.prototype.forEach.call($("itemBrowser").querySelectorAll(".tf"),function(b){b.addEventListener("click",function(){state.equipment.filterType=b.getAttribute("data-t");renderItemBrowser();});});
+    si.addEventListener("input",function(){uiState.equipment.filterQ=si.value;renderItemResults();});
+    Array.prototype.forEach.call($("itemBrowser").querySelectorAll(".tf"),function(b){b.addEventListener("click",function(){uiState.equipment.filterType=b.getAttribute("data-t");renderItemBrowser();});});
     renderItemResults();
   }
   function rarBadge(r){
@@ -2226,7 +2222,7 @@
     return ' <span class="rar-badge '+cls+'">'+esc(r)+"</span>";
   }
   function renderItemResults(){
-    var eq=state.equipment,q=(eq.filterQ||"").toLowerCase();
+    var eq=uiState.equipment,q=(eq.filterQ||"").toLowerCase();
     var list=(window.CC_ITEMS||[]).filter(function(it){
       if(!itemAllowed(it))return false;                 // hide the other edition's core items
       if(eq.filterType&&it.cat!==eq.filterType)return false;
@@ -2454,7 +2450,7 @@
     Array.prototype.forEach.call(container.querySelectorAll(".sp-chk"),wireSpellChk);
     Array.prototype.forEach.call(container.querySelectorAll(".sp-info"),function(el){
       el.addEventListener("mouseenter",function(){showSpellDetail(el.getAttribute("data-key"));});
-      el.addEventListener("click",function(){state.spells.preview=el.getAttribute("data-key");showSpellDetail(el.getAttribute("data-key"));});
+      el.addEventListener("click",function(){uiState.spells.preview=el.getAttribute("data-key");showSpellDetail(el.getAttribute("data-key"));});
     });
   }
   function renderSpells(){
@@ -2491,18 +2487,18 @@
     if(info.spellsCount>0&&info.maxLevel>0){
       var sFull=selS.length>=info.spellsCount;
       left+='<div class="spell-head"><h3>'+(info.prepared?"Spells Prepared":"Spells Known")+'</h3><span class="spell-count '+(sFull?"done":"need")+'">'+selS.length+" / "+info.spellsCount+"</span></div>";
-      left+='<input type="text" id="spellSearch" placeholder="Search spells…" value="'+esc(state.spells.q||"")+'">';
-      var tabs='<button class="lt'+(state.spells.levelFilter===""?" active":"")+'" data-l="">All</button>';
-      for(var lv=1;lv<=info.maxLevel;lv++)tabs+='<button class="lt'+(state.spells.levelFilter===String(lv)?" active":"")+'" data-l="'+lv+'">Lvl '+lv+"</button>";
+      left+='<input type="text" id="spellSearch" placeholder="Search spells…" value="'+esc(uiState.spells.q||"")+'">';
+      var tabs='<button class="lt'+(uiState.spells.levelFilter===""?" active":"")+'" data-l="">All</button>';
+      for(var lv=1;lv<=info.maxLevel;lv++)tabs+='<button class="lt'+(uiState.spells.levelFilter===String(lv)?" active":"")+'" data-l="'+lv+'">Lvl '+lv+"</button>";
       left+='<div class="lvl-tabs">'+tabs+'</div><div class="spell-list" id="spellResults"></div>';
     }
-    html+='<div class="spells-cols"><div class="spells-left">'+left+'</div><div class="spells-right"><div id="spellDetail" class="spell-detail">'+spellDetailHtml(state.spells.preview?spellByKey(state.spells.preview):null)+"</div></div></div>";
+    html+='<div class="spells-cols"><div class="spells-left">'+left+'</div><div class="spells-right"><div id="spellDetail" class="spell-detail">'+spellDetailHtml(uiState.spells.preview?spellByKey(uiState.spells.preview):null)+"</div></div></div>";
     host.innerHTML=html;
     wireSpellRows(host);        // wire cantrip rows while #spellResults is still empty (avoids double-wiring)
     renderSpellResults();       // populates + wires #spellResults rows once
     var ss=host.querySelector("#spellSearch");
-    if(ss)ss.addEventListener("input",function(){state.spells.q=ss.value;renderSpellResults();});
-    Array.prototype.forEach.call(host.querySelectorAll(".lt"),function(b){b.addEventListener("click",function(){state.spells.levelFilter=b.getAttribute("data-l");renderSpells();});});
+    if(ss)ss.addEventListener("input",function(){uiState.spells.q=ss.value;renderSpellResults();});
+    Array.prototype.forEach.call(host.querySelectorAll(".lt"),function(b){b.addEventListener("click",function(){uiState.spells.levelFilter=b.getAttribute("data-l");renderSpells();});});
   }
   function wireSpellChk(chk){
     chk.addEventListener("change",function(){
@@ -2521,7 +2517,7 @@
   }
   function renderSpellResults(){
     var box=$("spellResults");if(!box)return;
-    var info=spellInfo(),q=(state.spells.q||"").toLowerCase(),lf=state.spells.levelFilter;
+    var info=spellInfo(),q=(uiState.spells.q||"").toLowerCase(),lf=uiState.spells.levelFilter;
     var lo=lf?parseInt(lf,10):1,hi=lf?parseInt(lf,10):info.maxLevel;
     var list=classSpellList(lo,hi).filter(function(s){return !q||s.name.toLowerCase().indexOf(q)>=0;});
     list.sort(function(a,b){return a.level-b.level||a.name.localeCompare(b.name);});
@@ -2592,7 +2588,7 @@
     return (b?b+", ":"")+keep.join(", ");
   }
   function proficientSkills(){
-    var set={},fd=state.fdata;function add(s){if(s)set[s]=1;}
+    var set={},fd=derivedState.fdata;function add(s){if(s)set[s]=1;}
     if(fd&&fd.proficiencies&&fd.proficiencies.skills)for(var i=0;i<fd.proficiencies.skills.count;i++)add(state.choices["skill:"+i]);
     var bg=currentBg();
     if(bg&&bg.skills){(bg.skills.fixed||[]).forEach(add);
@@ -2612,7 +2608,7 @@
      chosen skills. Each Expertise feature grants two picks, taken from skills you are
      already proficient in. */
   function expertiseFeatures(){
-    var out=[],fd=state.fdata;
+    var out=[],fd=derivedState.fdata;
     if(!fd)return out;
     (fd.classFeatures||[]).forEach(function(f){
       if(f.level<=state.level&&f.name==="Expertise"&&optEnabled(f))out.push(f);
@@ -2898,7 +2894,7 @@
     return abMod(totalScore(a))+(savingProfs()[a]?profBonus():0)+itemBonuses().save;
   }
   function savingProfs(){
-    var set={},fd=state.fdata,st=fd&&fd.proficiencies&&fd.proficiencies.savingThrows;
+    var set={},fd=derivedState.fdata,st=fd&&fd.proficiencies&&fd.proficiencies.savingThrows;
     if(st&&st!=="None")st.split(",").forEach(function(s){set[s.trim()]=1;});
     return set;
   }
@@ -3074,7 +3070,7 @@
   }
   // summarise the player's actual choices for a feature (for the sheet's Features list)
   function choiceSummary(f){
-    var fd=state.fdata,name=f.name,L=f.level,i;
+    var fd=derivedState.fdata,name=f.name,L=f.level,i;
     if(name==="Ability Score Improvement"){
       var mode=state.choices["asi:"+L+":mode"];
       if(mode==="feat"){
@@ -3091,7 +3087,7 @@
     return "";
   }
   function featEntriesWithChoice(f){
-    var fd=state.fdata,cs=choiceSummary(f),i;
+    var fd=derivedState.fdata,cs=choiceSummary(f),i;
     var isGroup=fd&&fd.optionLists&&fd.optionLists[f.name]&&f.name!=="Ability Score Improvement";
     var base=isGroup?stripOptions(f.entries):(f.entries||[]);
     var extra=[];
@@ -3174,7 +3170,7 @@
      resource (a Sorcerer's Magical Guidance), so they can sit in one card of their own
      instead of being hunted for in Features & Traits. */
   function classOptions(){
-    var fd=state.fdata;if(!fd)return {items:[],pools:[]};
+    var fd=derivedState.fdata;if(!fd)return {items:[],pools:[]};
     var lists=fd.optionLists||{},out=[],seen={},pools=[],i;
     // Read each option pool by its choices. A choice only exists once the player has made
     // it at the right level, so this catches pools on the class or the subclass alike.
@@ -3205,7 +3201,7 @@
   // Every feature/trait the character actually has: race + lineage + class + chosen
   // subclass (up to the current level), with nested feature references expanded.
   function featuresAndTraits(){
-    var race=currentRace(),lin=race?currentLineage(race):null,fd=state.fdata,list=[];
+    var race=currentRace(),lin=race?currentLineage(race):null,fd=derivedState.fdata,list=[];
     // shallow copy so we can record an origin without touching the shared data
     function tag(f,origin){var o={},k;for(k in f)o[k]=f[k];o._origin=origin;return o;}
     function withSrc(nm,src){return (src&&String(nm).indexOf("("+src+")")<0)?nm+" ("+src+")":nm;}
@@ -3229,7 +3225,7 @@
      the Beast. Resolve those into real features so they are listed and searched like
      any other, inheriting the origin of the feature that referenced them. */
   function expandFeatureRefs(list){
-    var lookup=(state.fdata&&state.fdata.refLookup)||{},out=[],seen={};
+    var lookup=(derivedState.fdata&&derivedState.fdata.refLookup)||{},out=[],seen={};
     function tag(f,origin){var o={},k;for(k in f)o[k]=f[k];o._origin=origin;return o;}
     function walk(e,origin){
       if(!e)return;
@@ -3509,7 +3505,7 @@
      (chosen Metamagic options, the feat taken instead of an ASI, and so on). Shared
      with the PowerPoint export so the printed page matches the expanded card. */
   function featureCards(){
-    var fd=state.fdata;if(!fd)return [];
+    var fd=derivedState.fdata;if(!fd)return [];
     var race=currentRace(),lin=race?currentLineage(race):null;
     var featItems=[],seenCh={},refSrc=[];
     (fd.classFeatures||[]).forEach(function(f){
@@ -3686,7 +3682,7 @@
   }
   // how many attacks the Attack action grants (Extra Attack stacks)
   function attacksPerAction(){
-    var extra=0;(state.fdata&&state.fdata.classFeatures||[]).forEach(function(f){if(f.level<=state.level&&/Extra Attack/i.test(f.name))extra++;});
+    var extra=0;(derivedState.fdata&&derivedState.fdata.classFeatures||[]).forEach(function(f){if(f.level<=state.level&&/Extra Attack/i.test(f.name))extra++;});
     return 1+extra;
   }
   function actionsCardHtml(){
@@ -3752,7 +3748,7 @@
   }
   function renderInvResults(){
     var box=$("invResults");if(!box)return;
-    var q=(state.sheet.invQ||"").toLowerCase();
+    var q=(uiState.sheet.invQ||"").toLowerCase();
     if(!q){box.innerHTML="";return;}
     var full=(window.CC_ITEMS||[]).filter(function(it){return itemAllowed(it)&&it.name.toLowerCase().indexOf(q)>=0;});
     var list=full.slice(0,150);
@@ -3769,7 +3765,7 @@
   function renderSheet(){
     var host=$("sheetPanel");if(!host)return;
     if(!state.className){host.innerHTML='<p class="sec-note">Pick a class (step 1) to build the sheet.</p>';return;}
-    if(!state.fdata){host.innerHTML='<p class="sec-note">Loading class data…</p>';return;}
+    if(!derivedState.fdata){host.innerHTML='<p class="sec-note">Loading class data…</p>';return;}
     try{renderSheetInner(host);}
     catch(e){host.innerHTML='<div class="sheet-card"><h3>Sheet error (please report this text)</h3><div class="cbody"><pre style="white-space:pre-wrap;font-size:12px">'+esc((e&&e.stack)||(e&&e.message)||String(e))+"</pre></div></div>";}
   }
@@ -3789,7 +3785,7 @@
       '<div class="top-stat"><div class="tv"><input type="number" id="hpTemp" class="stat-inp" value="'+esc(state.sheet.hpTemp||"")+'"></div><div class="tl">Temp HP</div></div>'+
       '<div class="top-stat"><div class="tv"><input type="number" id="xpInput" class="stat-inp xp-inp" value="'+esc(state.sheet.xp||"")+'"></div><div class="tl">XP</div></div></div></div>'+
       fxBarHtml()+
-      '<div class="ac-edit'+(state.sheet.acEditOpen?"":" hidden")+'" id="acEditRow">'+
+      '<div class="ac-edit'+(uiState.sheet.acEditOpen?"":" hidden")+'" id="acEditRow">'+
         '<span class="ac-edit-lbl">Customise Armor Class</span>'+
         '<label>Other modifier <input type="number" id="acOther" value="'+esc(state.sheet.acOther||"")+'" placeholder="0"></label>'+
         '<label>Override total <input type="number" id="acOverride" value="'+esc(state.sheet.acOverride||"")+'" placeholder="auto"></label>'+
@@ -3804,7 +3800,7 @@
     var sp=savingProfs();
     var saveRows=ABILITIES.map(function(a){var m=saveBonus(a);return '<div class="line-row"><span class="dot'+(sp[a]?" on":"")+'"></span><span class="ab">'+ABIL_ABBR[a]+'</span><span>'+a+'</span><span class="lv">'+modStr(m)+"</span></div>";}).join("");
     var senses=sensesList();
-    var fd=state.fdata,pf=fd.proficiencies||{},langs=languagesAll();
+    var fd=derivedState.fdata,pf=fd.proficiencies||{},langs=languagesAll();
     var langChips=(state.customLanguages||[]).map(function(l,i){return '<span class="lang-chip">'+esc(l)+' <span class="lang-x" data-i="'+i+'">&times;</span></span>';}).join("");
     var known={};langs.forEach(function(l){known[String(l).toLowerCase()]=1;});
     var GROUPS=[["standard","Standard"],["exotic","Exotic"],["secret","Secret"],["other","Regional & other"]];
@@ -3929,8 +3925,8 @@
       }).join("");
     }else invBody+='<span class="res-sub">No items yet.</span>';
     invBody+='<div class="hr" style="margin:14px 0 10px"></div><div class="res-sub" style="margin-bottom:6px"><b>Add items</b></div>';
-    invBody+='<input type="text" id="invSearch" placeholder="Search all items…" value="'+esc(state.sheet.invQ||"")+'"><div id="invResults" class="inv-results"></div>';
-    invBody+='<div class="lang-add" style="margin:8px 0"><input type="text" id="invCustom" placeholder="Add a custom item…"><button class="btn" id="addCustomItem">Add</button></div>';
+    invBody+='<input type="text" id="invSearch" placeholder="Search all items…" value="'+esc(uiState.sheet.invQ||"")+'"><div id="invResults" class="inv-results"></div>';
+    invBody+='<div class="lang-add" style="margin:8px 0"><input type="text" id="invCustom" placeholder="Add a custom item…" value="'+esc(uiState.sheet.invAdd)+'"><button class="btn" id="addCustomItem">Add</button></div>';
     var cInv=shCard("Inventory",invBody);
     var featItems=featureCards();
     var fxKeys={};fxAvailable().forEach(function(e){fxKeys[e.key]=1;});
@@ -3973,15 +3969,15 @@
     var xp=host.querySelector("#xpInput");if(xp)xp.addEventListener("input",function(){state.sheet.xp=xp.value;});
     var acS=host.querySelector("#acStat"),acRow=host.querySelector("#acEditRow");
     if(acS&&acRow)acS.addEventListener("click",function(){
-      state.sheet.acEditOpen=!state.sheet.acEditOpen;
-      acRow.classList.toggle("hidden",!state.sheet.acEditOpen);
+      uiState.sheet.acEditOpen=!uiState.sheet.acEditOpen;
+      acRow.classList.toggle("hidden",!uiState.sheet.acEditOpen);
     });
     var acO=host.querySelector("#acOther"),acV=host.querySelector("#acOverride");
     function stash(){                                  // record without re-rendering
       if(acO)state.sheet.acOther=acO.value;
       if(acV)state.sheet.acOverride=acV.value;
     }
-    function apply(){stash();state.sheet.acEditOpen=true;render();}
+    function apply(){stash();uiState.sheet.acEditOpen=true;render();}
     if(acO)acO.addEventListener("input",stash);
     if(acV)acV.addEventListener("input",stash);
     function onEnter(e){if(e.keyCode===13){e.preventDefault();apply();}}
@@ -3990,9 +3986,9 @@
     var acA=host.querySelector("#acApply");
     if(acA)acA.addEventListener("click",apply);
     var acR=host.querySelector("#acReset");
-    if(acR)acR.addEventListener("click",function(){state.sheet.acOther="";state.sheet.acOverride="";state.sheet.acEditOpen=true;render();});
+    if(acR)acR.addEventListener("click",function(){state.sheet.acOther="";state.sheet.acOverride="";uiState.sheet.acEditOpen=true;render();});
     var acC=host.querySelector("#acClose");
-    if(acC)acC.addEventListener("click",function(){stash();state.sheet.acEditOpen=false;render();});
+    if(acC)acC.addEventListener("click",function(){stash();uiState.sheet.acEditOpen=false;render();});
     var lr=host.querySelector("#longRest");if(lr)lr.addEventListener("click",longRest);
     var sr=host.querySelector("#shortRest");if(sr)sr.addEventListener("click",shortRest);
     var ib=host.querySelector("#inspBox");if(ib)ib.addEventListener("click",function(){state.sheet.inspiration=!state.sheet.inspiration;render();});
@@ -4057,9 +4053,10 @@
     // currency
     Array.prototype.forEach.call(host.querySelectorAll(".sh-cur"),function(inp){inp.addEventListener("input",function(){state.equipment.currency[inp.getAttribute("data-k")]=parseInt(inp.value,10)||0;var g=host.querySelector("#shGp");if(g)g.innerHTML=Math.round(currencyGP()*100)/100;});});
     // inventory add / custom / controls
-    var is=host.querySelector("#invSearch");if(is)is.addEventListener("input",function(){state.sheet.invQ=is.value;renderInvResults();});
+    var is=host.querySelector("#invSearch");if(is)is.addEventListener("input",function(){uiState.sheet.invQ=is.value;renderInvResults();});
     var ic=host.querySelector("#invCustom"),aci=host.querySelector("#addCustomItem");
-    function addCustom(){var v=ic&&ic.value.trim();if(v){addItemObj({name:v,cat:"Other Gear",generic:true});render();}}
+    function addCustom(){var v=ic&&ic.value.trim();if(v){addItemObj({name:v,cat:"Other Gear",generic:true});uiState.sheet.invAdd="";render();}}
+    if(ic)ic.addEventListener("input",function(){uiState.sheet.invAdd=ic.value;});
     if(aci)aci.addEventListener("click",addCustom);
     if(ic)ic.addEventListener("keydown",function(e){if(e.keyCode===13){e.preventDefault();addCustom();}});
     Array.prototype.forEach.call(host.querySelectorAll(".sh-qty"),function(inp){inp.addEventListener("change",function(){state.equipment.inventory[+inp.getAttribute("data-i")].qty=parseInt(inp.value,10)||1;});});
@@ -4081,7 +4078,7 @@
   }
 
   /* ---------- save / load / export ---------- */
-  var SAVE_KEYS=["edition","name","className","source","slug","hdFaces","level","manualHp","subclassName","choices","background","bgIsCustom","bgCustomName","bgCustomDesc","bgChoices","details","race","raceLineage","raceChoices","abilities","equipment","spells","customLanguages","customProficiencies","customDefences","portrait","sheet"];
+
   function processPortrait(file){
     var rd=new FileReader();
     rd.onload=function(){
@@ -4099,7 +4096,7 @@
     };
     rd.readAsDataURL(file);
   }
-  function serializeChar(){var o={_app:"dnd-cc",_v:1};SAVE_KEYS.forEach(function(k){o[k]=state[k];});return o;}
+  function serializeChar(){return characterModel.serialize(state);}
   function toast(msg){
     var el=$("toast");
     if(!el){el=document.createElement("div");el.id="toast";el.className="toast";document.body.appendChild(el);}
@@ -4326,51 +4323,67 @@
         $(fallbackInputId).click();
       });
   }
-  function loadCharObj(o,fromServer){
-    if(!o||o._app!=="dnd-cc"){alert("That doesn't look like a saved character file.");return;}
+  function loadCharObj(o,fromServer,handle){
     if(!window.CCCharacterJSON)throw new Error("Character validation unavailable. Reload the application before importing.");
     window.CCCharacterJSON.validate(o);
-    featureLoadGeneration++;
-    // Always restore onto fresh defaults, including nested fields in older saves.
-    function merge(base,value){
-      if(!base||!value||typeof base!=="object"||typeof value!=="object"||Array.isArray(base)||Array.isArray(value))return value;
-      Object.keys(value).forEach(function(k){
-        if(k!=="__proto__"&&k!=="constructor"&&k!=="prototype")base[k]=merge(base[k],value[k]);
-      });
-      return base;
+    var fresh=characterModel.normalize(o),requested=JSON.stringify(serializeChar());
+    var generation=featureLoadGeneration,ticket=++importGeneration,synchronous=true;
+    function finish(fd){
+      if(generation!==featureLoadGeneration||ticket!==importGeneration)return;
+      if(fresh.slug&&!fd){
+        var error=new Error("Game data for this character could not be loaded. Your current character was kept.");
+        if(synchronous)throw error;
+        alert(error.message);return;
+      }
+      if(!synchronous&&!fromServer&&serverLibrary&&serverLibrary.isBusy()){
+        serverLibrary.canLeave();return;
+      }
+      if(!synchronous&&requested!==JSON.stringify(serializeChar())&&
+         !confirm("Discard the changes made while this character was loading?"))return;
+      var previous=serializeChar(),oldView=JSON.parse(JSON.stringify(uiState));
+      var oldData=derivedState.fdata,oldHandle=charFileHandle;
+      var wasHome=uiState.screen==="edition";
+      featureLoadGeneration++;
+      replaceState(state,fresh);replaceState(uiState,freshView());derivedState.fdata=fd;
+      try{
+        $("editionTag").textContent=editionLabel(state.edition);
+        populateClasses();populateBackgrounds();populateRaces();
+        $("charName").value=state.name||"";$("classSelect").value=state.slug||"";
+        populateLevels();$("levelSelect").value=state.level;
+        $("featTitle").textContent=state.className?state.className+" Features":"Class Features";
+        showBuild(state.slug?"sheet":"class");
+        charFileHandle=handle||null;
+        if(!fromServer&&serverLibrary)serverLibrary.detach();
+        rcRemember(charFileHandle);
+      }catch(error){
+        featureLoadGeneration++;
+        replaceState(state,characterModel.normalize(previous));replaceState(uiState,oldView);
+        derivedState.fdata=oldData;charFileHandle=oldHandle;
+        $("charName").value=state.name||"";$("classSelect").value=state.slug||"";$("levelSelect").value=state.level;
+        $("editionTag").textContent=editionLabel(state.edition);
+        $("featTitle").textContent=state.className?state.className+" Features":"Class Features";
+        try{if(wasHome)showEdition();else showBuild(uiState.currentStep);}catch(ignored){}
+        if(synchronous)throw error;
+        alert("Could not load character: "+(error.message||error));
+      }
     }
-    var fresh=freshCharacter();
-    SAVE_KEYS.forEach(function(k){if(o[k]!==undefined)fresh[k]=merge(fresh[k],o[k]);});
-    Object.keys(state).forEach(function(k){delete state[k];});
-    Object.keys(fresh).forEach(function(k){state[k]=fresh[k];});
-    if(!fromServer&&serverLibrary)serverLibrary.detach();
-    var ds=freshSheet(),sk;                       // a file saved by an older build lacks newer keys
-    for(sk in ds)if(state.sheet[sk]===undefined)state.sheet[sk]=ds[sk];
-    if(!state.customProficiencies)state.customProficiencies={armor:[],weapons:[],tools:[]};
-    ["armor","weapons","tools"].forEach(function(k){if(!state.customProficiencies[k])state.customProficiencies[k]=[];});
-    if(!state.customDefences)state.customDefences=[];
-    state.fdata=null;state.openPanels={};
-    $("editionTag").textContent=editionLabel(state.edition);
-    populateClasses();populateBackgrounds();populateRaces();
-    $("charName").value=state.name||"";
-    $("classSelect").value=state.slug||"";
-    populateLevels();$("levelSelect").value=state.level;
-    $("featTitle").textContent=state.className?state.className+" Features":"Class Features";
-    if(state.slug)loadSelectedFeatureData(state.slug,function(fd){state.fdata=fd;showBuild("sheet");});
-    else showBuild("class");
-    rcRemember(charFileHandle);        // a no-op when the file came through the plain input
+    // References are staged without changing the current character. Reset,
+    // navigation or a newer selection invalidates this pending import.
+    if(fresh.slug)loadFeatureData(fresh.slug,finish);else finish(null);
+    synchronous=false;
   }
   function loadCharFile(file,handle){
     if(file.size>2097152){alert("Character file exceeds the 2 MiB limit. Your current character was kept.");return;}
-    var rd=new FileReader();
+    var rd=new FileReader(),generation=featureLoadGeneration,ticket=++fileReadGeneration;
     rd.onload=function(){try{
+      if(generation!==featureLoadGeneration||ticket!==fileReadGeneration)return;
       if(!window.CCCharacterJSON)throw new Error("Character validation unavailable. Reload the application before importing.");
       var value=window.CCCharacterJSON.parse(rd.result);
       if(!value||value._app!=="dnd-cc"){alert("That doesn't look like a saved character file.");return;}
       if(serverLibrary&&!serverLibrary.canLeave())return;
-      charFileHandle=handle||null;loadCharObj(value);
+      loadCharObj(value,false,handle);
     }catch(e){alert("Could not read file: "+(e.message||e));}};
-    rd.onerror=function(){alert("Could not read the character file. Your current character was kept.");};
+    rd.onerror=function(){if(generation===featureLoadGeneration&&ticket===fileReadGeneration)alert("Could not read the character file. Your current character was kept.");};
     rd.readAsText(file);
   }
 
@@ -4412,18 +4425,12 @@
         });
       },
       load:function(character){
-        var previous=serializeChar(),handle=charFileHandle;
-        var wasHome=!$("screen-edition").classList.contains("hidden");
-        try{charFileHandle=null;loadCharObj(character,true);}
-        catch(error){
-          charFileHandle=handle;loadCharObj(previous,true);
-          if(wasHome)showEdition();
-          throw new Error("Invalid response from the character server. Your current character was kept.");
-        }
+        try{loadCharObj(character,true);}
+        catch(error){throw new Error("Invalid response from the character server. Your current character was kept.");}
       },
       onStatus:function(message,kind){
         setText("serverSaveStatus",message);
-        if(message&&!$("screen-edition").classList.contains("hidden"))setText("serverListStatus",message);
+        if(message&&uiState.screen==="edition")setText("serverListStatus",message);
         $("serverConflict").classList.toggle("hidden",kind!=="conflict");
       },
       onBusy:function(value){
@@ -4468,7 +4475,7 @@
 
   function base64ToBytes(b64){var bin=atob(b64),arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr;}
   function featureNamesList(){
-    var fd=state.fdata,out=[];if(!fd)return out;
+    var fd=derivedState.fdata,out=[];if(!fd)return out;
     var race=currentRace(),lin=race?currentLineage(race):null;
     (fd.classFeatures||[]).forEach(function(f){if(f.level<=state.level)out.push(f.name);});
     var chosen=state.subclassName?(fd.subclasses||[]).filter(function(s){return s.name===state.subclassName;})[0]:null;
@@ -4499,7 +4506,7 @@
     setT("Speed",speedText());
     var mhp=maxHP();setT("HPMax",mhp);setT("HPCurrent",state.sheet.hpEdited?state.sheet.hpCurrent:mhp);setT("HPTemp",state.sheet.hpTemp);
     setT("HDTotal",state.level+"d"+state.hdFaces);
-    var pf=(state.fdata&&state.fdata.proficiencies)||{};
+    var pf=(derivedState.fdata&&derivedState.fdata.proficiencies)||{};
     // fold any added proficiencies in after the granted ones
     var _fg=featureGrants();
     function profLine(txt,key){
@@ -4582,7 +4589,7 @@
     T.senses=(sensesList()||[]).concat(["Passive Perception "+passiveScore("Perception")]).join("\n");
     var dl=defencesSummaryLines();
     T.defences=dl.length?dl.join("\n"):"-";
-    var pf=(state.fdata&&state.fdata.proficiencies)||{},fg=featureGrants();
+    var pf=(derivedState.fdata&&derivedState.fdata.proficiencies)||{},fg=featureGrants();
     function profLine(txt,key){
       var granted=(fg[key]||[]).concat(key==="tools"?featureToolPicks():[],featGrantsAll()[key]||[]);
       return plainTags(withFeatureProfs(txt||"None",granted));
@@ -4885,20 +4892,20 @@
   $("classSelect").addEventListener("change",function(e){
     featureLoadGeneration++;
     var slug=e.target.value;
-    if(!slug){state.className=null;state.slug=null;state.fdata=null;render();return;}
+    if(!slug){state.className=null;state.slug=null;derivedState.fdata=null;render();return;}
     var c=classesForEdition(state.edition).filter(function(x){return x.slug===slug;})[0];
     state.className=c.name;state.source=c.source;state.slug=slug;
     /* A sidekick is an existing creature gaining class levels, so its hit die comes from
        its own stat block rather than the class. Default to d8, a Medium creature, and let
        it be changed below. */
     state.hdFaces=c.hdFaces||(c.isSidekick?8:null);
-    state.manualHp=null;state.subclassName=null;state.fdata=null;state.choices={};state.openPanels={};
+    state.manualHp=null;state.subclassName=null;derivedState.fdata=null;state.choices={};uiState.openPanels={};
     state.equipment.starting={};state.equipment.startingAdded=false;
-    state.spells={cantrips:[],spells:[],levelFilter:"",q:""};
+    state.spells={cantrips:[],spells:[]};uiState.spells=freshView().spells;
     state.sheet=freshSheet();
     populateLevels();
     $("featTitle").textContent=c.name+" Features";
-    loadSelectedFeatureData(slug,function(fd){state.fdata=fd;render();});
+    loadSelectedFeatureData(slug,function(fd){derivedState.fdata=fd;render();});
     render();
   });
   $("levelSelect").addEventListener("change",function(e){

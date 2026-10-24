@@ -92,4 +92,5 @@
     return validate(value);
   }
   root.CCCharacterJSON={validate:validate,parse:parse};
-})(window);
+  if(typeof module!=="undefined"&&module.exports)module.exports=root.CCCharacterJSON;
+})(typeof window!=="undefined"?window:globalThis);
