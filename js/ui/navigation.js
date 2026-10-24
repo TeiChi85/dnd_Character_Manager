@@ -80,6 +80,7 @@
       });
       Array.prototype.forEach.call(document.querySelectorAll(".ed-card"),function(card){
         card.addEventListener("click",function(){context.actions.chooseEdition(card.getAttribute("data-edition"));});
+        card.addEventListener("keydown",function(event){if(event.key==="Enter"||event.key===" "){event.preventDefault();card.click();}});
       });
       $("changeEdition").addEventListener("click",context.actions.home);
       $("saveBtn").addEventListener("click",context.actions.save);

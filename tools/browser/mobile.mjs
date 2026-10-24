@@ -105,7 +105,7 @@ try{
    await page.addInitScript(data=>{Object.assign(window,data);window.showSaveFilePicker=undefined;window.showOpenFilePicker=undefined;},data);
    page.on('dialog',dialog=>dialog.accept());
    records=[];await page.goto(origin);await page.getByText('No characters saved on the server yet.').waitFor();checks++;
-   await page.locator('#createNew').click();await page.locator('.ed-card[data-edition="classic"]').click();await page.locator('#classSelect').selectOption('synthetic');
+   await page.locator('#createNew').click();await page.locator('.ed-card[data-edition="classic"]').focus();await page.keyboard.press('Enter');await page.locator('#classSelect').waitFor();await page.locator('#classSelect').selectOption('synthetic');
    const builderStyles=await page.evaluate(()=>{const sample=()=>['classSelect','charName','classCard','featureList'].map(id=>{const el=document.getElementById(id),s=getComputedStyle(el),r=el.getBoundingClientRect();return [id,s.fontSize,s.color,s.backgroundColor,r.width,r.height];});const before=sample(),sheet=[...document.styleSheets].find(sheet=>sheet.href&&sheet.href.endsWith('/mobile.css'));sheet.disabled=true;const after=sample();sheet.disabled=false;return {before,after};});
    assert.deepEqual(builderStyles.before,builderStyles.after);checks++;
    for(const id of ['toBackground','toSpecies','toAbilities','toEquipment','toSpells','toSheet'])await page.locator('#'+id).click();ok(await page.locator('#hpCur').isVisible(),'existing builder completes');
