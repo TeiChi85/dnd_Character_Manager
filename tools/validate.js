@@ -45,6 +45,18 @@ for(var i=0;i<dataFiles.length;i++) eval(readFile(ROOT+"resources\\"+dataFiles[i
 var featDir=fso.GetFolder(ROOT+"resources\\features"),fe=new Enumerator(featDir.Files);
 for(;!fe.atEnd();fe.moveNext()){var f=fe.item();if(/\.js$/i.test(f.Name))eval(readFile(f.Path));}
 
+eval(readFile(ROOT+"js\\core\\rules-core.js"));
+eval(readFile(ROOT+"js\\core\\rules-engine.js"));
+// Count actual calls: passing via app.js fallbacks must not look like core coverage.
+var moduleCalls={core:{},engine:{}};
+function trackModule(api,calls){
+  for(var key in api)(function(k){
+    var original=api[k];calls[k]=0;
+    api[k]=function(){calls[k]++;return original.apply(null,arguments);};
+  })(key);
+}
+trackModule(window.CCRulesCore,moduleCalls.core);
+trackModule(window.CCRulesEngine,moduleCalls.engine);
 var app=readFile(ROOT+"js\\app.js");
 app=app.replace("populateLevels();showEdition();",
  "populateLevels();window.__cc={state:state,render:render,renderSheet:renderSheet,"+
@@ -1847,6 +1859,14 @@ setup("wizard-classic","Wizard",17);
 var clean={};C.classSpellList(0,9).forEach(function(s){clean[s.name]=1;});
 checkTrue("  no feat, no Wind Wall",!clean["Wind Wall"]);
 
+// The shipped modules must actually be reached by the app, not just loaded.
+["abMod","profBonus","autoHp","maxHP","skillBonus","passiveScore","saveBonus","maxSpellLevel"].forEach(function(k){
+  checkTrue("productive core path: "+k,moduleCalls.core[k]>0);
+});
+["calculateAC","spellModifiers","weaponAttack","unarmedAttack","featureAttack","aggregateEffects",
+ "aggregateItems","effectDamage","martialArtsDie","biggerDie","scaledDie","abilityWithItems"].forEach(function(k){
+  checkTrue("productive engine path: "+k,moduleCalls.engine[k]>0);
+});
 // =====================================================================
 WScript.Echo("");
 WScript.Echo("=======================================================");

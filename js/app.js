@@ -17,6 +17,7 @@
   var serverLibrary=null;
   var featureLoadGeneration=0;
   var CCRules = (typeof window !== "undefined" && window.CCRulesCore) || null;
+  var rulesEngine=window.CCRulesEngine;
   // Wipe every character field in place (keeping the same state object) and reset the form controls.
   function resetCharacter(){
     featureLoadGeneration++;
@@ -1798,11 +1799,7 @@
     /* Worn gear last: a Belt of Hill Giant Strength sets Strength to 21 unless it is
        already higher, an Ioun Stone of Agility simply adds. */
     var ib=itemBonuses().abil[a];
-    if(ib){
-      tot+=ib.delta;
-      if(ib.floor!=null&&ib.floor>tot)tot=ib.floor;
-    }
-    return tot;
+    return rulesEngine.abilityWithItems(tot,ib);
   }
 
   function renderAbilities(){
@@ -2024,59 +2021,42 @@
     return {ok:false,verb:""};
   }
   function itemBonuses(){
-    var t={ac:0,save:0,saveConc:0,spellAtk:0,spellDc:0,abilCheck:0,prof:0,crit:20,
-           abil:{},speed:[],profItems:[],
-           sources:{ac:[],save:[],saveConc:[],spellAtk:[],spellDc:[],abilCheck:[],prof:[],crit:[]}};
+    var items=[];
     state.equipment.inventory.forEach(function(it){
       if(!it.equipped)return;
       var att=itemAttune(it),attRequired=!!att&&att!=="optional";
-      if(attRequired&&!it.attuned)return;                 // no benefit before attuning
-      var info=itemInfo(it.name,it.source)||{},nm=it.name;
+      if(attRequired&&!it.attuned)return;
+      var info=itemInfo(it.name,it.source)||{};
       function f(k){var v=it[k];return v===undefined||v===null?info[k]:v;}
       function num(k){var v=f(k);return v==null?0:(parseInt(String(v).replace("+",""),10)||0);}
-      function add(k,amt){if(amt){t[k]+=amt;t.sources[k].push(nm+" "+modStr(amt));}}
-      /* Armour and shields are left to acInfo: it already reads their AC and magic bonus
-         through resolveArmor, and counting bonusAc here as well would double it. A variant
-         still waiting for its base armour counts as armour too - it is not a second source
-         of AC, it is an incomplete one. */
-      if(!resolveArmor(it)&&!isVariantArmor(it)&&!it.armorKind)add("ac",num("bonusAc"));
-      add("save",num("bonusSavingThrow"));
-      add("saveConc",num("bonusSavingThrowConcentration"));
-      add("spellAtk",num("bonusSpellAttack"));
-      add("spellDc",num("bonusSpellSaveDc"));
-      add("abilCheck",num("bonusAbilityCheck"));
-      add("prof",num("bonusProficiencyBonus"));
-      var ct=parseInt(f("critThreshold"),10);
-      if(ct&&ct<t.crit){t.crit=ct;t.sources.crit=[nm+" (crit on "+ct+"+)"];}
-      if(f("grantsProficiency")===true)t.profItems.push(nm);
-      /* Two shapes: "your Strength score becomes 21" is a floor, written as
-         {static:{str:21}}; "your Constitution increases by 2" is a straight bonus. */
+      // Armor/shield magic AC is already included by resolveArmor -> calculateAC.
+      var record={name:it.name,ac:(!resolveArmor(it)&&!isVariantArmor(it)&&!it.armorKind)?num("bonusAc"):0,
+        save:num("bonusSavingThrow"),saveConc:num("bonusSavingThrowConcentration"),
+        spellAtk:num("bonusSpellAttack"),spellDc:num("bonusSpellSaveDc"),
+        abilCheck:num("bonusAbilityCheck"),prof:num("bonusProficiencyBonus"),
+        crit:parseInt(f("critThreshold"),10),grantsProficiency:f("grantsProficiency")===true,
+        abilities:[],speed:[]};
       var ab=f("ability");
       if(ab&&typeof ab==="object"){
-        function slot(k){
-          var full=abilFromAbbr(k);if(!full)return null;
-          if(!t.abil[full])t.abil[full]={delta:0,floor:null,from:[]};
-          if(t.abil[full].from.indexOf(nm)<0)t.abil[full].from.push(nm);
-          return t.abil[full];
-        }
         for(var sk in (ab.static||{})){
-          var s1=slot(sk);
-          if(s1&&(s1.floor==null||ab.static[sk]>s1.floor))s1.floor=ab.static[sk];
+          var full=abilFromAbbr(sk);
+          if(full)record.abilities.push({name:full,floor:ab.static[sk]});
         }
         for(var dk in ab){
           if(dk==="static"||dk==="choose"||dk==="from"||dk==="count"||dk==="amount")continue;
-          var s2=slot(dk);
-          if(s2&&typeof ab[dk]==="number")s2.delta+=ab[dk];
+          var ability=abilFromAbbr(dk);
+          if(ability)record.abilities.push({name:ability,delta:ab[dk]});
         }
       }
       var ms=f("modifySpeed");
       if(ms&&typeof ms==="object"){
         ["static","bonus","multiply","equal"].forEach(function(op){
-          for(var mk in (ms[op]||{}))t.speed.push({op:op,kind:mk,val:ms[op][mk],from:nm});
+          for(var mk in (ms[op]||{}))record.speed.push({op:op,kind:mk,val:ms[op][mk]});
         });
       }
+      items.push(record);
     });
-    return t;
+    return rulesEngine.aggregateItems(items);
   }
   /* A plain list of what the worn gear is doing, so it is obvious whether an item has
      been picked up by the sheet or is still waiting to be equipped or attuned. */
@@ -2158,53 +2138,21 @@
   }
   // Returns {total, label, parts:[[name,value],...]} using the best applicable formula.
   function acInfo(){
-    var dex=abMod(totalScore("Dexterity")),body=null,shield=null;
+    var body=null,shield=null;
     state.equipment.inventory.forEach(function(i){
       if(!i.equipped)return;
       var a=resolveArmor(i);if(!a)return;
       if(a.armorKind==="shield"){if(!shield)shield=a;}else if(!body)body=a;
     });
-    var shieldBonus=shield?((shield.ac||2)+shield.bonus):0;
-    var opts=[];
-    // a shell or carapace gives a fixed number whatever else is worn
-    acFormulas().forEach(function(f){
-      if(!f.flat)return;
-      if(f.noShield&&shield)return;
-      opts.push({label:f.label,parts:[[f.label,f.base]],total:f.base,flat:true});
+    var formulas=acFormulas().map(function(f){
+      return {label:f.label,base:f.base,flat:f.flat,noShield:f.noShield,
+        modifiers:f.mods.map(function(a){return {label:ABIL_ABBR[a]||a,value:abMod(totalScore(a))};})};
     });
-    if(body){
-      var b=(body.ac||10),dexPart=body.armorKind==="light"?dex:(body.armorKind==="medium"?Math.min(dex,2):0);
-      var parts=[[body.name,b]];
-      if(body.armorKind!=="heavy")parts.push([body.armorKind==="medium"?"Dex (max 2)":"Dex",dexPart]);
-      if(body.bonus)parts.push(["magic",body.bonus]);
-      opts.push({label:body.name,parts:parts,total:b+dexPart+body.bonus});
-    }else{
-      opts.push({label:"Unarmoured",parts:[["Base",10],["Dex",dex]],total:10+dex});
-      acFormulas().forEach(function(f){
-        if(f.flat)return;                            // already offered above
-        if(f.noShield&&shield)return;                // e.g. Monk cannot use a shield with it
-        var p=[[f.label,f.base]],tot=f.base;
-        f.mods.forEach(function(a){var v=abMod(totalScore(a));p.push([ABIL_ABBR[a]||a,v]);tot+=v;});
-        opts.push({label:f.label,parts:p,total:tot});
-      });
-    }
-    var best=opts[0];
-    opts.forEach(function(o){if(o.total>best.total)best=o;});
-    var finalParts=best.parts.slice(),total=best.total;
-    if(shieldBonus){finalParts.push([shield.name,shieldBonus]);total+=shieldBonus;}
-    if(body&&hasStyle("Defense")){finalParts.push(["Defense style",1]);total+=1;}  // +1 AC while in armour
-    var fxt=fxTotals();                                  // e.g. Bladesong while it is on
-    if(fxt.ac){finalParts.push([fxt.sources.ac.join(" + "),fxt.ac]);total+=fxt.ac;}
-    var ibac=itemBonuses();                              // a cloak or ring worn alongside
-    if(ibac.ac){finalParts.push([ibac.sources.ac.join(" + "),ibac.ac]);total+=ibac.ac;}
-    var other=parseInt(state.sheet.acOther,10)||0;
-    if(other){finalParts.push(["Other",other]);total+=other;}
-    var ov=state.sheet.acOverride;
-    if(ov!==""&&ov!=null&&!isNaN(parseInt(ov,10))){
-      var o2=parseInt(ov,10);
-      return {total:o2,label:"Manual override",parts:[["Override",o2]],computed:total,overridden:true};
-    }
-    return {total:total,label:best.label,parts:finalParts};
+    var fx=fxTotals(),items=itemBonuses();
+    return rulesEngine.calculateAC({dexModifier:abMod(totalScore("Dexterity")),armor:body,shield:shield,
+      alternativeFormulas:formulas,defenseStyle:hasStyle("Defense"),
+      bonuses:[{label:fx.sources.ac.join(" + "),value:fx.ac},{label:items.sources.ac.join(" + "),value:items.ac}],
+      other:state.sheet.acOther,manualOverride:state.sheet.acOverride});
   }
   function computeAC(){return acInfo().total;}
   function acBreakdown(){
@@ -2381,7 +2329,8 @@
   }
   function abilitySaveDc(){
     var ab=dcAbility();
-    return ab?8+profBonus()+abMod(totalScore(ab))+itemBonuses().spellDc:null;
+    return ab?rulesEngine.spellModifiers({proficiencyBonus:profBonus(),
+      abilityModifier:abMod(totalScore(ab)),saveBonus:itemBonuses().spellDc}).saveDC:null;
   }
   function maxSpellLevel(caster,L){
     if(CCRules&&CCRules.maxSpellLevel)return CCRules.maxSpellLevel(caster,L);
@@ -2514,8 +2463,9 @@
     var info=spellInfo();
     if(!info){host.innerHTML='<p class="sec-note"><b>'+esc(state.className)+'</b> has no class spellcasting. (Some subclasses grant spells — not handled here yet.)</p>';return;}
     var ibs=itemBonuses();   // a Rod of the Pact Keeper and the like
-    var mod=abMod(totalScore(info.ability)),prof=profBonus(),
-        dc=8+prof+mod+ibs.spellDc,atk=prof+mod+ibs.spellAtk;
+    var spell=rulesEngine.spellModifiers({abilityModifier:abMod(totalScore(info.ability)),
+      proficiencyBonus:profBonus(),saveBonus:ibs.spellDc,attackBonus:ibs.spellAtk});
+    var dc=spell.saveDC,atk=spell.attack;
     var selC=state.spells.cantrips,selS=state.spells.spells;
     function stat(v,l){return '<div><div class="sv">'+v+'</div><div class="sl">'+l+"</div></div>";}
     var html='<div class="sc-summary">'+stat(esc(info.ability),"Ability")+stat(dc,"Spell Save DC")+stat(modStr(atk),"Spell Attack")+stat(info.maxLevel||"—","Max Spell Level")+stat(selC.length+"/"+info.cantripsKnown,"Cantrips")+stat(selS.length+"/"+info.spellsCount,(info.prepared?"Prepared":"Known"))+"</div>";
@@ -3442,19 +3392,9 @@
   }
   // summed modifiers from every active effect that is actually granting them
   function fxTotals(){
-    var t={dmg:0,ac:0,speed:0,resist:[],advAbility:[],sources:{dmg:[],ac:[],speed:[],resist:[],adv:[]}};
-    fxActive().forEach(function(e){
-      if(e.blocked)return;
-      var m=e.mods,acv=m.ac+(m.acAbility?abMod(totalScore(m.acAbility)):0);
-      if(m.dmg){t.dmg+=m.dmg;t.sources.dmg.push(e.name);}
-      if(acv){t.ac+=acv;t.sources.ac.push(e.name);}
-      if(m.speed){t.speed+=m.speed;t.sources.speed.push(e.name);}
-      if(m.resist.length&&t.sources.resist.indexOf(e.name)<0)t.sources.resist.push(e.name);
-      m.resist.forEach(function(r){if(t.resist.indexOf(r)<0)t.resist.push(r);});
-      if(m.advAbility.length&&t.sources.adv.indexOf(e.name)<0)t.sources.adv.push(e.name);
-      m.advAbility.forEach(function(a){if(t.advAbility.indexOf(a)<0)t.advAbility.push(a);});
-    });
-    return t;
+    var effects=fxActive(),scores={};
+    effects.forEach(function(e){if(e.mods.acAbility)scores[e.mods.acAbility]=totalScore(e.mods.acAbility);});
+    return rulesEngine.aggregateEffects({effects:effects,abilityScores:scores});
   }
   // the spell being concentrated on, if it is still one the character knows
   function concSpell(){
@@ -3481,8 +3421,7 @@
   function condMods(){return (window.CC_CONDMODS&&window.CC_CONDMODS[state.slug])||[];}
   // damage an active effect adds to this kind of attack; already folded into the total
   function fxDmgFor(kind){
-    if(!(kind&&kind.melee&&kind.str))return 0;   // the effects that grant damage are Strength melee ones
-    return fxTotals().dmg;
+    return rulesEngine.effectDamage(kind,fxTotals().dmg);
   }
   // dice an active effect adds; shown as a note because it cannot fold into the total
   function fxDiceNotes(kind){
@@ -3522,22 +3461,14 @@
     condMods().forEach(function(m){if(m.kind==="martialArts"){var v=m.values[lv];if(v)die=v;}});
     if(!die)return "";
     var w=wornArmor();
-    return (w.body||w.shield)?"":die;      // armour or a shield turns Martial Arts off
+    return rulesEngine.martialArtsDie({die:die,body:w.body,shield:w.shield});
   }
   /* Whether a weapon counts as a Monk weapon, which Martial Arts lets a Monk wield with
      Dexterity and the Martial Arts die. 2014: shortswords and simple melee weapons without
      the two-handed or heavy property. 2024: any simple melee weapon, or a martial melee
      weapon with the Light property. */
-  function isMonkWeapon(w){
-    if(!w||w.wtype==="R")return false;                  // melee only
-    var p=w.props||[],light=p.indexOf("Light")>=0,twoH=p.indexOf("Two-Handed")>=0,heavy=p.indexOf("Heavy")>=0;
-    if(state.edition==="one")return w.weaponCat==="simple"||(w.weaponCat==="martial"&&light);
-    if(/^shortsword$/i.test(w.name||""))return true;
-    return w.weaponCat==="simple"&&!twoH&&!heavy;
-  }
-  function dieFaces(d){var m=/^\s*1d(\d+)\s*$/.exec(String(d));return m?parseInt(m[1],10):0;}
-  // the larger of two single dice; the Martial Arts die may replace a smaller weapon die
-  function biggerDie(a,b){return dieFaces(b)>dieFaces(a)?b:a;}
+  function isMonkWeapon(w){return rulesEngine.isMonkWeapon(w,state.edition);}
+  function biggerDie(a,b){return rulesEngine.biggerDie(a,b);}
   // Attacks granted by a feature's sub-options, e.g. Path of the Beast's Bite / Claws / Tail.
   function featureAttacks(){
     var out=[],seen={};
@@ -3567,7 +3498,7 @@
     var out=[],i,v;for(i=0;i<20;i++){v=state.choices["Fighting Style:"+i];if(v&&out.indexOf(v)<0)out.push(v);}return out;
   }
   function hasStyle(nm){var s=fightingStyles(),i;for(i=0;i<s.length;i++)if(s[i].indexOf(nm)>=0)return true;return false;}
-  function scaledDie(sc,L){var best="",bl=-1;for(var k in sc){var n=+k;if(n<=L&&n>bl){bl=n;best=sc[k];}}return best;}
+  function scaledDie(sc,L){return rulesEngine.scaledDie(sc,L);}
   function capital(s){return s?s.charAt(0).toUpperCase()+s.slice(1):"";}
   /* The attack table on the sheet: equipped weapons, the unarmed strike, feature attacks
      (Bite/Claws) and damaging spells, each already carrying its ability modifier, magic
@@ -3653,7 +3584,8 @@
   }
   function attackRows(){
     var prof=profBonus(),strM=abMod(totalScore("Strength")),dexM=abMod(totalScore("Dexterity"));
-    var info=spellInfo(),castMod=info?abMod(totalScore(info.ability)):0,spAtk=info?prof+castMod:null,spDC=info?8+prof+castMod:null;
+    var info=spellInfo(),spell=info?rulesEngine.spellModifiers({proficiencyBonus:prof,
+      abilityModifier:abMod(totalScore(info.ability))}):null,spAtk=spell?spell.attack:null,spDC=spell?spell.saveDC:null;
     var out=[];
     // same call shape as the sheet's renderer, but it collects the row instead of drawing it
     function row(name,sub,range,hit,dmg,notes,why,desc){
@@ -3675,26 +3607,20 @@
       var w=resolveWeapon(it);
       if(!w)return;                       // e.g. a magic variant with no base weapon chosen yet
       if(w.attRequired&&!it.attuned)return;   // requires attunement, and you are not attuned
-      var props=w.props||[],finesse=props.indexOf("Finesse")>=0,thrown=props.indexOf("Thrown")>=0;
-      var twoH=props.indexOf("Two-Handed")>=0,versatile=props.indexOf("Versatile")>=0;
-      var melee=w.wtype!=="R";
-      // A Monk wields a monk weapon with Dexterity and may use the Martial Arts die
-      var monkW=!!maDie&&isMonkWeapon(w),useDex=finesse||monkW;
-      var abil=w.wtype==="R"?dexM:(useDex?Math.max(strM,dexM):strM);
-      var mod=abil+w.bonus;
+      var result=rulesEngine.weaponAttack({weapon:w,edition:state.edition,martialArtsDie:maDie,
+        strModifier:strM,dexModifier:dexM,proficiencyBonus:prof,effectDamage:fxTotals().dmg,
+        weaponCriticalThreshold:(itemInfo(it.name,it.source)||{}).critThreshold,itemCriticalThreshold:itemBonuses().crit,
+        styles:{dueling:hasStyle("Dueling"),thrown:hasStyle("Thrown Weapon Fighting"),
+          archery:hasStyle("Archery"),greatWeapon:hasStyle("Great Weapon Fighting")}});
+      var props=w.props||[],finesse=result.finesse,thrown=result.thrown,melee=result.melee;
+      var monkW=result.monkWeapon,usesStr=result.usesStrength;
       var range=w.wtype==="R"?(w.range?w.range+" ft.":"Ranged"):(thrown&&w.range?"5 ft. / "+w.range:"5 ft.");
-      var usesStr=melee&&(!useDex||strM>=dexM);
-      // fighting-style bonuses to this weapon
-      var styleDmg=0,styleHit=0,styleNotes=[];
-      // Dueling applies to a one-handed melee weapon while it's the only weapon you hold;
-      // each row is "if you attack with this", so it shows on every one-handed melee weapon
-      // (not two-handed) with a reminder of the condition
-      if(hasStyle("Dueling")&&melee&&!twoH){styleDmg+=2;styleNotes.push("+2 Dueling (wielding it alone)");}
-      if(hasStyle("Thrown Weapon Fighting")&&thrown&&melee){styleDmg+=2;styleNotes.push("+2 Thrown Weapon Fighting");}
-      if(hasStyle("Archery")&&!melee){styleHit+=2;styleNotes.push("+2 Archery (to hit)");}
-      if(hasStyle("Great Weapon Fighting")&&melee&&(twoH||versatile))styleNotes.push("reroll 1s & 2s (Great Weapon Fighting)");
-      var dbonus=abil+w.bonus+fxDmgFor({melee:melee,str:usesStr})+styleDmg; // e.g. Rage/Dueling
-      var die=monkW?biggerDie(w.dmg,maDie):w.dmg;                       // Martial Arts die if larger
+      var styleNotes=[];
+      if(result.styles.dueling)styleNotes.push("+2 Dueling (wielding it alone)");
+      if(result.styles.thrown)styleNotes.push("+2 Thrown Weapon Fighting");
+      if(result.styles.archery)styleNotes.push("+2 Archery (to hit)");
+      if(result.styles.greatWeapon)styleNotes.push("reroll 1s & 2s (Great Weapon Fighting)");
+      var dbonus=result.damageModifier,die=result.die;
       var dstr=die+(dbonus>0?"+"+dbonus:(dbonus<0?""+dbonus:""))+" "+dmgAbbr(w.dmgType);
       var notes=props.join(", ");
       if(w.bonus)notes=(notes?notes+" · ":"")+"magic +"+w.bonus;
@@ -3704,16 +3630,18 @@
       notes=withCond(notes,{melee:melee,ranged:!melee,str:usesStr,finesse:finesse,monkWeapon:false});
       if(w.att==="optional"&&!it.attuned)notes=(notes?notes+" · ":"")+"not attuned — no magic bonus";
       // a lowered critical range comes from the weapon itself or from something else worn
-      var critAt=Math.min(parseInt((itemInfo(it.name,it.source)||{}).critThreshold,10)||20,itemBonuses().crit);
+      var critAt=result.criticalThreshold;
       if(critAt<20)notes=(notes?notes+" · ":"")+"crits on "+critAt+"–20";
       var sub=w.wtype==="R"?"Ranged Weapon":(monkW?"Monk Weapon":"Melee Weapon");
-      rows+=row(w.name,sub,range,modStr(mod+prof+styleHit),dstr,notes,
+      rows+=row(w.name,sub,range,modStr(result.attack),dstr,notes,
                 "Equipped item"+(it.source?" — "+sourceName(it.source):""),itemEntriesFull(it));
     });
+    var unarmed=rulesEngine.unarmedAttack({martialArtsDie:maDie,strModifier:strM,dexModifier:dexM,
+      proficiencyBonus:prof,effectDamage:fxDmgFor({melee:true,str:true})});
     if(maDie){
       // Monk: the Martial Arts die replaces the flat 1, and Dexterity may stand in for Strength
-      var uMod=Math.max(strM,dexM)+fxDmgFor({melee:true,str:true});
-      rows+=row("Unarmed Strike","Melee (Martial Arts)","5 ft.",modStr(Math.max(strM,dexM)+prof),
+      var uMod=unarmed.damageModifier;
+      rows+=row("Unarmed Strike","Melee (Martial Arts)","5 ft.",modStr(unarmed.attack),
                 maDie+(uMod>0?"+"+uMod:(uMod<0?""+uMod:""))+" bludgeoning",
                 withCond("",{melee:true,str:true}),   // no unarmed note; the die is in the damage column
                 "Monk — Martial Arts",
@@ -3722,7 +3650,7 @@
                  "use your Dexterity modifier instead of Strength for the attack and damage rolls. "+
                  "It applies while you are unarmored and not wielding a shield."]);
     }else{
-      rows+=row("Unarmed Strike","Melee","5 ft.",modStr(strM+prof),Math.max(1,1+strM+fxDmgFor({melee:true,str:true}))+" bludgeoning",
+      rows+=row("Unarmed Strike","Melee","5 ft.",modStr(unarmed.attack),unarmed.flatDamage+" bludgeoning",
                 withCond("",{melee:true,str:true,unarmed:true}),
                 "Available to every character",    // unarmed damage is always at least 1
                 ["A punch, kick, head-butt or similar blow, made in place of a weapon attack. "+
@@ -3730,12 +3658,12 @@
                  "1 + your Strength modifier — never less than 1."]);
     }
     featureAttacks().forEach(function(a){                 // e.g. Bite / Claws / Tail from Form of the Beast
-      var usesStr=!a.finesse||strM>=dexM;
-      var mod=a.finesse?Math.max(strM,dexM):strM;                       // attack roll
-      var dm=mod+fxDmgFor({melee:true,str:usesStr});                    // damage only
-      rows+=row(a.name,a.parent,a.reach?"10 ft. (reach)":"5 ft.",modStr(mod+prof),
+      var feature=rulesEngine.featureAttack({finesse:a.finesse,strModifier:strM,dexModifier:dexM,
+        proficiencyBonus:prof,effectDamage:fxTotals().dmg});
+      var dm=feature.damageModifier;
+      rows+=row(a.name,a.parent,a.reach?"10 ft. (reach)":"5 ft.",modStr(feature.attack),
                 a.dmg+(dm>0?"+"+dm:(dm<0?""+dm:""))+" "+a.dmgType,
-                withCond(a.reach?"Reach":"",{melee:true,str:!a.finesse||strM>=dexM,finesse:a.finesse,unarmed:true}),
+                withCond(a.reach?"Reach":"",{melee:true,str:feature.usesStrength,finesse:a.finesse,unarmed:true}),
                 a.origin?(a.parent+" — "+a.origin):a.parent,
                 a.entries.length?["{@i From "+a.parent+".}"].concat(a.entries):[]);
     });
