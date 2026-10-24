@@ -48,6 +48,11 @@ var featDir=fso.GetFolder(ROOT+"resources\\features"),fe=new Enumerator(featDir.
 for(;!fe.atEnd();fe.moveNext()){var f=fe.item();if(/\.js$/i.test(f.Name))eval(readFile(f.Path));}
 
 eval(readFile(ROOT+"js\\ui\\components.js"));
+eval(readFile(ROOT+"js\\ui\\rule-text.js"));
+eval(readFile(ROOT+"js\\ui\\creator.js"));
+eval(readFile(ROOT+"js\\ui\\character-sheet.js"));
+eval(readFile(ROOT+"js\\ui\\navigation.js"));
+eval(readFile(ROOT+"js\\ui\\library.js"));
 eval(readFile(ROOT+"js\\character-validation.js"));
 eval(readFile(ROOT+"js\\core\\character-state.js"));
 eval(readFile(ROOT+"js\\core\\rules-core.js"));
@@ -1087,7 +1092,10 @@ section("7r. Every element app.js binds to exists in index.html");
 var _html=readFile(ROOT+"index.html");
 var _ids={},_m,_re=/id="([^"]+)"/g;
 while((_m=_re.exec(_html)))_ids[_m[1]]=1;
-var _app=app;                       // already read at the top of this file
+var _app=app;                       // Include the actual extracted implementations.
+["components","rule-text","creator","character-sheet","navigation","library"].forEach(function(name){
+  _app+="\n"+readFile(ROOT+"js\\ui\\"+name+".js");
+});
 var _bound=[],_b={},_re2=/\$\("([^"]+)"\)\.addEventListener/g;
 while((_m=_re2.exec(_app)))if(!_b[_m[1]]){_b[_m[1]]=1;_bound.push(_m[1]);}
 checkTrue("  index.html declares ids at all",Object.keys(_ids).length>50);

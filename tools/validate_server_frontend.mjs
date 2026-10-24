@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const librarySource=await readFile(new URL('../js/server-library.js',import.meta.url),'utf8');
 const validationSource=await readFile(new URL('../js/character-validation.js',import.meta.url),'utf8');
-const componentsSource=await readFile(new URL('../js/ui/components.js',import.meta.url),'utf8');
+const uiSources=await Promise.all(['components','rule-text','creator','character-sheet','navigation','library'].map(name=>readFile(new URL(`../js/ui/${name}.js`,import.meta.url),'utf8')));
 const rulesCoreSource=await readFile(new URL('../js/core/rules-core.js',import.meta.url),'utf8');
 const characterStateSource=await readFile(new URL('../js/core/character-state.js',import.meta.url),'utf8');
 const rulesEngineSource=await readFile(new URL('../js/core/rules-engine.js',import.meta.url),'utf8');
@@ -68,7 +68,7 @@ function harness({offline=false,transport=null}={}){
     URL:{createObjectURL(blob){downloads.push(blob.parts.join(''));return 'blob:test';},revokeObjectURL(){}},
     FileReader:class{readAsText(file){if(file.error){this.onerror();return;}this.result=file.text;if(file.defer)pendingReaders.push(this);else this.onload();}}});
   vm.runInContext(validationSource,context);vm.runInContext(librarySource,context);vm.runInContext(rulesCoreSource,context);
-  vm.runInContext(rulesEngineSource,context);vm.runInContext(characterStateSource,context);vm.runInContext(componentsSource,context);
+  vm.runInContext(rulesEngineSource,context);vm.runInContext(characterStateSource,context);for(const uiSource of uiSources)vm.runInContext(uiSource,context);
   // Only presentation/rule-data population is stubbed. State restoration, local
   // files, serialization, event wiring and the complete API client run unchanged.
   const startup='initServerLibrary();\n  populateLevels();showEdition();showDataVersion();';
