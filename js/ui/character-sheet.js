@@ -181,8 +181,54 @@
     var host=$("sheetPanel");if(!host)return;
     if(!state.className){host.innerHTML='<p class="sec-note">Pick a class (step 1) to build the sheet.</p>';return;}
     if(!derivedState.fdata){host.innerHTML='<p class="sec-note">Loading class data…</p>';return;}
-    try{renderSheetInner(host);}
+    try{if(window.matchMedia&&window.matchMedia("(max-width: 1023px)").matches)renderMobile(host);else renderSheetInner(host);}
     catch(e){host.innerHTML='<div class="sheet-card"><h3>Sheet error (please report this text)</h3><div class="cbody"><pre style="white-space:pre-wrap;font-size:12px">'+esc((e&&e.stack)||(e&&e.message)||String(e))+"</pre></div></div>";}
+  }
+  var sectionLabels={training:"Overview & Training",skills:"Skills",combat:"Combat & Actions",resources:"Class Resources",spells:"Spells",inventory:"Inventory",features:"Features & Traits",defences:"Speed & Defences",background:"Background & Details",rest:"Rest & Death Saves"};
+  var selectorMounted=false;
+  function renderMobile(host){
+    var selected=uiState.sheet.section||"training";
+    if(!sectionLabels[selected])selected="training";
+    host.className="sheet-frame cm-sheet";
+    host.innerHTML='<div id="mobileSheetHeader"></div><div class="cm-section-bar"><button class="btn ghost" type="button" id="sectionSelect" aria-haspopup="dialog">'+esc(sectionLabels[selected])+' ▾</button><button class="btn ghost" type="button" id="sheetActions" aria-haspopup="dialog">Actions</button></div><section class="cm-section-content" id="activeSheetSection" aria-label="'+esc(sectionLabels[selected])+'"></section>';
+    renderSection("header",host.querySelector("#mobileSheetHeader"));
+    var header=host.querySelector("#mobileSheetHeader"),top=header.querySelector(".sheet-top"),stats=top.querySelectorAll(".top-stat");
+    var extra=document.createElement("details");extra.className="cm-extra";extra.innerHTML='<summary>More stats &amp; temporary HP</summary><div class="cm-extra-grid"></div>';
+    var extraGrid=extra.querySelector(".cm-extra-grid");
+    Array.prototype.forEach.call(stats,function(stat,index){if(index!==2&&stat.id!=="acStat"&&!stat.classList.contains("sheet-hp"))extraGrid.appendChild(stat);});
+    header.appendChild(extra);
+    renderSection(selected,host.querySelector("#activeSheetSection"));
+    var dialog=$("sectionDialog"),options=$("sectionOptions");
+    host.querySelector("#sectionSelect").addEventListener("click",function(){
+      options.innerHTML=Object.keys(sectionLabels).map(function(key){return '<button type="button" data-section="'+key+'" aria-current="'+(selected===key?"true":"false")+'">'+esc(sectionLabels[key])+(selected===key?" ✓":"")+'</button>';}).join("");
+      Array.prototype.forEach.call(options.querySelectorAll("button"),function(button){button.addEventListener("click",function(){uiState.sheet.section=button.getAttribute("data-section");dialog.close();renderMobile(host);$("sectionSelect").focus();});});
+      if(window.history)window.history.pushState({cmView:"character",cmDialog:true},"","#sections");
+      dialog.showModal();var current=options.querySelector('[aria-current="true"]');if(current)current.focus();
+    });
+    host.querySelector("#sheetActions").addEventListener("click",function(){$("characterActions").showModal();});
+    if(!selectorMounted){
+      selectorMounted=true;
+      $("sectionClose").addEventListener("click",function(){dialog.close();});
+      dialog.addEventListener("close",function(){var trigger=$("sectionSelect");if(trigger)trigger.focus();});
+      dialog.addEventListener("click",function(event){if(event.target===dialog){var rect=dialog.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)dialog.close();}});
+      $("characterActions").addEventListener("close",function(){var trigger=$("sheetActions");if(trigger)trigger.focus();});
+    }
+  }
+  function enhanceControls(host){
+    if(!window.matchMedia)return;
+    Array.prototype.forEach.call(host.querySelectorAll(".pip,.death-dot,.fx-box,.fx-pill,.sc-h,.atk-row.has-desc,#acStat,#inspBox,#sheetPortrait,.lang-x,.prof-x,.def-x"),function(node){
+      node.setAttribute("role","button");node.setAttribute("tabindex","0");
+      var label=node.getAttribute("data-k")||node.getAttribute("data-fx-set")||node.getAttribute("data-fx")||node.textContent.trim()||node.id;
+      if(node.classList.contains("death-dot"))label="Death save "+node.getAttribute("data-kind")+" "+(+node.getAttribute("data-i")+1);
+      node.setAttribute("aria-label",label);
+      function update(){if(node.classList.contains("pip")||node.classList.contains("fx-box"))node.setAttribute("aria-pressed",String(node.classList.contains("used")||node.classList.contains("on")));if(node.classList.contains("sc-h"))node.setAttribute("aria-expanded",String(node.parentNode.classList.contains("open")));}
+      update();node.addEventListener("click",update);
+      node.addEventListener("keydown",function(event){if(event.target===node&&(event.key==="Enter"||event.key===" ")){event.preventDefault();node.click();}});
+    });
+    var labels={hpCur:"Current hit points",hpTemp:"Temporary hit points",xpInput:"Experience points",invSearch:"Search inventory items",invCustom:"Custom item name",acOther:"Other armor class modifier",acOverride:"Override armor class"};
+    Array.prototype.forEach.call(host.querySelectorAll("input,select"),function(node){
+      if(!node.getAttribute("aria-label"))node.setAttribute("aria-label",labels[node.id]||node.getAttribute("title")||node.getAttribute("placeholder")||node.getAttribute("data-k")||node.id||"Quantity");
+    });
   }
   function headerHTML(view){
     var prof=view.prof,ac=view.ac,init=view.init,mhp=view.mhp;
@@ -279,24 +325,30 @@
     var info=view.info;
     // spells
     var info=spellInfo(),spBody="";
+    function visible(key){var spell=spellByKey(key);return spell&&(!uiState.sheet.spellQ||spell.name.toLowerCase().indexOf(uiState.sheet.spellQ.toLowerCase())>=0)&&(uiState.sheet.spellLevel==null||uiState.sheet.spellLevel===""||String(spell.level)===uiState.sheet.spellLevel);}
+    var levels={},known=state.spells.cantrips.concat(state.spells.spells);
+    allRacialSpells().forEach(function(entry){var spell=spellByName(entry.name);if(spell)known.push(spell.name+"|"+spell.source);});
+    featGrantsAll().spells.forEach(function(name){var spell=spellByName(name);if(spell)known.push(spell.name+"|"+spell.source);});
+    known.forEach(function(key){var spell=spellByKey(key);if(spell)levels[spell.level]=true;});
+    var filters='<div class="cm-filter"><label>Search spells<input type="search" id="sheetSpellSearch" value="'+esc(uiState.sheet.spellQ||"")+'"></label><label>Spell level<select id="sheetSpellLevel"><option value="">All levels</option>'+Object.keys(levels).sort().map(function(level){return '<option value="'+level+'"'+(uiState.sheet.spellLevel===level?" selected":"")+'>'+(level==="0"?"Cantrips":"Level "+level)+'</option>';}).join("")+'</select></label></div>';
     if(info){
       // slot counts are shown in the Spell Slots card above, so they are not repeated here
-      if(state.spells.cantrips.length)spBody+='<div class="spell-lvl-h">Cantrips</div>'+sheetCollapse(spellItems(state.spells.cantrips),"sc");
-      var byLvl={};state.spells.spells.forEach(function(k){var s=spellByKey(k);if(s){(byLvl[s.level]=byLvl[s.level]||[]).push(k);}});
+      if(state.spells.cantrips.filter(visible).length)spBody+='<div class="spell-lvl-h">Cantrips</div>'+sheetCollapse(spellItems(state.spells.cantrips.filter(visible)),"sc");
+      var byLvl={};state.spells.spells.filter(visible).forEach(function(k){var s=spellByKey(k);if(s){(byLvl[s.level]=byLvl[s.level]||[]).push(k);}});
       Object.keys(byLvl).sort().forEach(function(lv){spBody+='<div class="spell-lvl-h">Level '+lv+'</div>'+sheetCollapse(spellItems(byLvl[lv]),"s"+lv);});
       var spell=spellPresentation(info,false);
-      spBody+='<div class="res-sub" style="margin-top:6px">DC '+spell.saveDC+" · attack "+modStr(spell.attack)+"</div>";
+      spBody+='<div class="res-sub" style="margin-top:6px">'+esc(info.ability)+' '+modStr(abMod(totalScore(info.ability)))+' · DC '+spell.saveDC+" · attack "+modStr(spell.attack)+"</div>";
     }
     // racial / innate spells (from species/lineage), shown even for non-casters
     var rsp=allRacialSpells();
     if(rsp.length){
       var rk=[],rseen={};rsp.forEach(function(sp){var s=spellByName(sp.name);if(s&&!rseen[s.name]){rseen[s.name]=1;rk.push(s.name+"|"+s.source);}});
-      if(rk.length)spBody+='<div class="spell-lvl-h">Racial / Innate</div>'+sheetCollapse(spellItems(rk),"rc");
+      if(rk.filter(visible).length)spBody+='<div class="spell-lvl-h">Racial / Innate</div>'+sheetCollapse(spellItems(rk.filter(visible)),"rc");
     }
     // spells a feat grants (Fey Touched, Magic Initiate, Ritual Caster...)
     var fsp=featGrantsAll().spells,fk=[],fseen={};
     fsp.forEach(function(n){var s=spellByName(n);if(s&&!fseen[s.name]){fseen[s.name]=1;fk.push(s.name+"|"+s.source);}});
-    if(fk.length)spBody+='<div class="spell-lvl-h">From your feats</div>'+sheetCollapse(spellItems(fk),"fs");
+    if(fk.filter(visible).length)spBody+='<div class="spell-lvl-h">From your feats</div>'+sheetCollapse(spellItems(fk.filter(visible)),"fs");
     var copts=concOptions();
     if(copts.length){
       var cur=state.sheet.conc||"";
@@ -305,7 +357,7 @@
         copts.map(function(c){return '<option value="'+esc(c.key)+'"'+(c.key===cur?" selected":"")+">"+esc(c.label)+"</option>";}).join("")+
         "</select>"+(concSpell()?'<div class="conc-note">Ends if you cast another concentration spell, are incapacitated, or fail a DC 10 Constitution save (or half the damage taken, whichever is higher).</div>':"")+"</div>";
     }
-    var cSpells=shCard("Spells",spBody);
+    var cSpells=shCard("Spells",filters+spBody);
     var cSlots=shCard("Spell Slots",spellSlotsHtml(info));
     return cSlots+cSpells;
   }
@@ -353,12 +405,15 @@
   }
   function featuresHTML(view){
     var featItems=featureCards();
+    var origins={};featItems.forEach(function(item){if(item.origin)origins[item.origin]=true;});
+    var filters='<div class="cm-filter"><label>Search features<input type="search" id="sheetFeatureSearch" value="'+esc(uiState.sheet.featureQ||"")+'"></label><label>Source<select id="sheetFeatureOrigin"><option value="">All sources</option>'+Object.keys(origins).sort().map(function(origin){return '<option value="'+esc(origin)+'"'+(origin===uiState.sheet.featureOrigin?' selected':'')+'>'+esc(origin)+'</option>';}).join("")+'</select></label></div>';
+    featItems=featItems.filter(function(item){return (!uiState.sheet.featureQ||item.name.toLowerCase().indexOf(uiState.sheet.featureQ.toLowerCase())>=0)&&(!uiState.sheet.featureOrigin||item.origin===uiState.sheet.featureOrigin);});
     var fxKeys={};fxAvailable().forEach(function(e){fxKeys[e.key]=1;});
     featItems.forEach(function(fi){                 // a checkbox beside anything you switch on in play
       var bare=fi.name.replace(/\s*\[[^\]]*\]\s*$/,"").replace(/\s*\(optional\)\s*$/,"");
       if(fxKeys[bare])fi.fx=bare;
     });
-    var cFeat=shCard("Features & Traits",sheetCollapse(featItems,"f"));
+    var cFeat=shCard("Features & Traits",filters+sheetCollapse(featItems,"f"));
     return cFeat;
   }
   function backgroundHTML(view){
@@ -385,7 +440,7 @@
 
     return cRest+cDeath;
   }
-  function defencesHTML(){return shCard("Defences",defencesHtml());}
+  function defencesHTML(){return shCard("Speed",esc(speedText()))+shCard("Defences",defencesHtml());}
   function sheetView(){return {prof:profBonus(),ac:computeAC(),init:abMod(totalScore("Dexterity")),mhp:maxHP(),info:spellInfo()};}
   var sections={header:headerHTML,training:trainingHTML,skills:skillsHTML,resources:resourcesHTML,combat:combatHTML,spells:spellsHTML,inventory:inventoryHTML,features:featuresHTML,background:backgroundHTML,rest:restHTML,defences:defencesHTML};
   // A section owns its target DOM. Replacing it drops its former local listeners.
@@ -396,17 +451,31 @@
     }
     host.innerHTML=sections[name](sheetView());
     bindSheetEvents(host);
+    enhanceControls(host);
     if(name==="inventory")renderInvResults(host);
   }
   function renderSheetInner(host){
     var view=sheetView(),fxOn=fxActive(),frameCls="sheet-frame";
     if(fxOn.length)frameCls+=" fx-active";
     if(concSpell())frameCls+=" fx-conc-on";
-    host.className=frameCls;
+    host.className=frameCls+" cm-sheet";
     host.innerHTML=headerHTML(view)+'<div class="sheet-grid"><div>'+trainingHTML(view)+"</div><div>"+skillsHTML(view)+defencesHTML(view)+"</div><div>"+resourcesHTML(view)+spellsHTML(view)+"</div><div>"+combatHTML(view)+inventoryHTML(view)+'</div><div class="col5"><div class="col5-pair">'+restHTML(view)+"</div>"+featuresHTML(view)+backgroundHTML(view)+"</div></div>";
-    bindSheetEvents(host);renderInvResults(host);
+    bindSheetEvents(host);enhanceControls(host);renderInvResults(host);
   }
   function bindSheetEvents(host){
+    var featureSearch=host.querySelector("#sheetFeatureSearch"),featureOrigin=host.querySelector("#sheetFeatureOrigin");
+    if(featureSearch&&featureOrigin){
+      function filterFeatures(){var active=document.activeElement,id=active&&active.id,start=active&&active.selectionStart;uiState.sheet.featureQ=featureSearch.value;uiState.sheet.featureOrigin=featureOrigin.value;if(host.id==="activeSheetSection")renderSection("features",host);else renderSheet();var field=id&&$(id);if(field){field.focus();if(typeof start==="number"&&field.setSelectionRange)field.setSelectionRange(start,start);}}
+      featureSearch.addEventListener("input",filterFeatures);featureOrigin.addEventListener("change",filterFeatures);
+    }
+    var search=host.querySelector("#sheetSpellSearch"),level=host.querySelector("#sheetSpellLevel");
+    function filterSpells(){
+      var active=document.activeElement,id=active&&active.id,start=active&&active.selectionStart;
+      uiState.sheet.spellQ=search.value;uiState.sheet.spellLevel=level.value;
+      if(host.id==="activeSheetSection")renderSection("spells",host);else renderSheet();
+      var input=id&&$(id);if(input){input.focus();if(typeof start==="number"&&input.setSelectionRange)input.setSelectionRange(start,start);}
+    }
+    if(search&&level){search.addEventListener("input",filterSpells);level.addEventListener("change",filterSpells);}
     var spx=host.querySelector("#sheetPortrait");if(spx)spx.addEventListener("click",function(){$("portraitFile").click();});
     var hc=host.querySelector("#hpCur");if(hc)hc.addEventListener("input",function(){state.sheet.hpEdited=true;state.sheet.hpCurrent=parseInt(hc.value,10)||0;});
     var ht=host.querySelector("#hpTemp");if(ht)ht.addEventListener("input",function(){state.sheet.hpTemp=ht.value;});

@@ -4,7 +4,9 @@
     var document=context.document,uiState=context.ui;
     function $(id){return document.getElementById(id);}
     function setText(id,text){$(id).textContent=text;}
-    var lastItems=[],lastMessage="",search=$("librarySearch");
+    var lastItems=[],lastMessage="",search=$("librarySearch"),busy=false;
+    function showDirty(){if(!busy&&uiState.screen==="build"&&context.actions.dirty&&context.actions.dirty())setText("serverSaveStatus","Unsaved changes — save to the server or a local JSON file.");}
+    document.addEventListener("input",showDirty);document.addEventListener("change",showDirty);
     if(search)search.addEventListener("input",function(){onList(lastItems,lastMessage);});
     function confirmDelete(item){
         return new Promise(function(resolve){
@@ -32,6 +34,7 @@
         $("serverConflict").classList.toggle("hidden",kind!=="conflict");
       }
     function onBusy(value){
+        busy=value;
         ["serverSave","serverSaveNew","serverReload","serverConflictNew"].forEach(function(id){$(id).disabled=value;});
         Array.prototype.forEach.call($("serverCharacterList").querySelectorAll("button"),function(button){button.disabled=value;});
       }

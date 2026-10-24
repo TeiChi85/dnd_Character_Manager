@@ -3273,7 +3273,7 @@
   /* ---------- optional shared server library ---------- */
   function initServerLibrary(){
     if(!window.CCServerLibrary)return;
-    var libraryView=window.CCLibraryUI.create({document:document,ui:uiState,actions:{
+    var libraryView=window.CCLibraryUI.create({document:document,ui:uiState,actions:{dirty:function(){return serverLibrary?serverLibrary.dirty():false;},
       isBusy:function(){return serverLibrary?serverLibrary.isBusy():false;},
       open:function(id){serverLibrary.open(id);},remove:function(item){serverLibrary.remove(item);}
     }});
