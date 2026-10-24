@@ -4,9 +4,11 @@
     var document=context.document,uiState=context.ui;
     function $(id){return document.getElementById(id);}
     function setText(id,text){$(id).textContent=text;}
+    var lastItems=[],lastMessage="",search=$("librarySearch");
+    if(search)search.addEventListener("input",function(){onList(lastItems,lastMessage);});
     function confirmDelete(item){
         return new Promise(function(resolve){
-          var dialog=$("deleteDialog"),settled=false;
+          var dialog=$("deleteDialog"),settled=false,trigger=document.activeElement;
           setText("deleteCharacterName",item.name||"Unnamed character");
           function finish(confirmed){
             if(settled)return;settled=true;
@@ -14,6 +16,7 @@
             dialog.oncancel=dialog.onclose=dialog.onclick=null;
             $("deleteCancel").onclick=$("deleteClose").onclick=$("deleteConfirm").onclick=null;
             resolve(confirmed);
+            if(trigger&&trigger.focus)trigger.focus();
           }
           $("deleteCancel").onclick=$("deleteClose").onclick=function(){finish(false);};
           $("deleteConfirm").onclick=function(){finish(true);};
@@ -33,6 +36,9 @@
         Array.prototype.forEach.call($("serverCharacterList").querySelectorAll("button"),function(button){button.disabled=value;});
       }
     function onList(items,message){
+        lastItems=items;lastMessage=message;
+        var query=search?search.value.trim().toLowerCase():"";
+        items=items.filter(function(item){return !query||((item.name||"")+" "+(item.className||"")).toLowerCase().indexOf(query)>=0;});
         setText("serverListStatus",message);
         var host=$("serverCharacterList");host.innerHTML="";
         items.forEach(function(item){
@@ -46,6 +52,7 @@
           date.textContent="Updated "+new Date(item.updated_at).toLocaleString();
           var text=document.createElement("span");text.className="rc-txt";
           text.appendChild(title);text.appendChild(summary);text.appendChild(date);button.appendChild(text);
+          var avatar=document.createElement("span");avatar.className="cm-avatar";avatar.setAttribute("aria-hidden","true");avatar.textContent=(item.name||"?").charAt(0).toUpperCase();button.appendChild(avatar);
           button.disabled=context.actions.isBusy();
           button.addEventListener("click",function(){context.actions.open(item.id);});row.appendChild(button);
           var remove=document.createElement("button");remove.type="button";remove.className="server-delete";
@@ -55,6 +62,7 @@
           remove.addEventListener("click",function(event){event.stopPropagation();context.actions.remove(item);});
           row.appendChild(remove);host.appendChild(row);
         });
+        if(query&&!items.length)setText("serverListStatus","No characters match your search.");
         if(message&&message.indexOf("Deleted ")===0)$("serverRefresh").focus();
       }
     return {confirmDelete:confirmDelete,onStatus:onStatus,onBusy:onBusy,onList:onList};

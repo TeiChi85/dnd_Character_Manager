@@ -3705,7 +3705,7 @@
   function ordinal(n){var s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
 
   function uiContext(pure){return {character:state,ui:uiState,derived:derivedState,window:window,document:document,
-    actions:{chooseEdition:chooseEdition,home:returnHome,save:saveChar,load:function(){loadViaPicker("fileLoadStart");},print:printSheet,invalidateLoads:function(){featureLoadGeneration++;},refreshLibrary:function(){if(serverLibrary)serverLibrary.refresh();},alert:function(message){alert(message);},confirm:function(message){return confirm(message);}},adapters:{
+    actions:{canNavigate:function(){if(serverLibrary&&serverLibrary.isBusy()){serverLibrary.canLeave();return false;}return true;},chooseEdition:chooseEdition,home:returnHome,save:saveChar,load:function(){loadViaPicker("fileLoadStart");},print:printSheet,invalidateLoads:function(){featureLoadGeneration++;},refreshLibrary:function(){if(serverLibrary)serverLibrary.refresh();},alert:function(message){alert(message);},confirm:function(message){return confirm(message);}},adapters:{
       autoHp:autoHp,isSidekickClass:isSidekickClass,spellPresentation:spellPresentation,resourceView:resourceView,shortRestNames:shortRestNames,
       abMod:function(){return abMod.apply(null,arguments);},
       abilityBonusMap:function(){return abilityBonusMap.apply(null,arguments);},
