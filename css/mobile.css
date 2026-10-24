@@ -1,7 +1,7 @@
 /* Library and sheet only: the existing builder keeps its original theme/layout. */
 :root{--cm-bg:#f3f6f8;--cm-surface:#fff;--cm-surface-raised:#e7eef3;--cm-text:#172630;--cm-muted:#536671;--cm-accent:#076bab;--cm-danger:#bd0610;--cm-border:#becbd4}
 :root[data-theme="dark"]{--cm-bg:#11161a;--cm-surface:#212b34;--cm-surface-raised:#293742;--cm-text:#f3f5f6;--cm-muted:#a8b5bd;--cm-accent:#2d94d9;--cm-danger:#ff6770;--cm-border:#344450}
-body.cm-view{background:var(--cm-bg);color:var(--cm-text)}
+body.cm-view{background:var(--cm-bg)}
 .cm-library,.cm-sheet,.cm-dialog,.cm-bottom{--bg:var(--cm-bg);--panel:var(--cm-surface);--ink:var(--cm-text);--muted:var(--cm-muted);--line:var(--cm-border);--line2:var(--cm-border);--accent:var(--cm-accent);--head:var(--cm-surface-raised);--shadow:none;color:var(--cm-text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.5;overflow-wrap:anywhere}
 .cm-app-title,.cm-bottom{display:none}
 .cm-view .cm-app-title{display:block;margin-right:auto;font-weight:750;font-size:20px}
@@ -94,3 +94,16 @@ body.cm-view .cm-sheet .pip.used,body.cm-view .cm-sheet .fx-box.on{background:va
 body.cm-view .cm-library .btn:not(.ghost),body.cm-view .cm-sheet .btn:not(.ghost),body.cm-view .cm-dialog .btn:not(.ghost),body.cm-view .server-tools .btn:not(.ghost){color:var(--cm-on-accent)}
 .cm-bottom [aria-current="page"]{color:var(--cm-text);box-shadow:inset 0 -3px var(--cm-accent)}
 .cm-sheet .lang-x,.cm-sheet .prof-x,.cm-sheet .def-x{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}
+
+@media(max-width:1023px){
+ .cm-view .wrap{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+ .cm-view .global-theme-bar{padding-top:calc(8px + env(safe-area-inset-top));padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+ .cm-view .cm-bottom{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+ .cm-sheet .cm-section-bar{top:calc(61px + env(safe-area-inset-top))}
+}
+@media(max-width:359px){.cm-view .wrap{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}}
+
+.cm-view .server-tools,.cm-view .global-theme-bar{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.cm-view .server-tools button,.cm-view .global-theme-bar button{font-family:inherit}
+.cm-view .server-tools .btn.ghost{background:var(--cm-surface);color:var(--cm-text);border-color:var(--cm-border)}
+.cm-sheet .sc-h{font-size:16px}.cm-sheet .spell-lvl-h{color:var(--cm-text)}

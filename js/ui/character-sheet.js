@@ -325,11 +325,12 @@
     var info=view.info;
     // spells
     var info=spellInfo(),spBody="";
-    function visible(key){var spell=spellByKey(key);return spell&&(!uiState.sheet.spellQ||spell.name.toLowerCase().indexOf(uiState.sheet.spellQ.toLowerCase())>=0)&&(uiState.sheet.spellLevel==null||uiState.sheet.spellLevel===""||String(spell.level)===uiState.sheet.spellLevel);}
+    function visible(key){var spell=spellByKey(key);return spell&&(!uiState.sheet.spellQ||spell.name.toLowerCase().indexOf(uiState.sheet.spellQ.toLowerCase())>=0)&&(!selectedLevel||String(spell.level)===selectedLevel);}
     var levels={},known=state.spells.cantrips.concat(state.spells.spells);
     allRacialSpells().forEach(function(entry){var spell=spellByName(entry.name);if(spell)known.push(spell.name+"|"+spell.source);});
     featGrantsAll().spells.forEach(function(name){var spell=spellByName(name);if(spell)known.push(spell.name+"|"+spell.source);});
     known.forEach(function(key){var spell=spellByKey(key);if(spell)levels[spell.level]=true;});
+    var selectedLevel=uiState.sheet.spellLevel||"";if(selectedLevel&&!levels[selectedLevel])selectedLevel="";
     var filters='<div class="cm-filter"><label>Search spells<input type="search" id="sheetSpellSearch" value="'+esc(uiState.sheet.spellQ||"")+'"></label><label>Spell level<select id="sheetSpellLevel"><option value="">All levels</option>'+Object.keys(levels).sort().map(function(level){return '<option value="'+level+'"'+(uiState.sheet.spellLevel===level?" selected":"")+'>'+(level==="0"?"Cantrips":"Level "+level)+'</option>';}).join("")+'</select></label></div>';
     if(info){
       // slot counts are shown in the Spell Slots card above, so they are not repeated here
@@ -357,7 +358,8 @@
         copts.map(function(c){return '<option value="'+esc(c.key)+'"'+(c.key===cur?" selected":"")+">"+esc(c.label)+"</option>";}).join("")+
         "</select>"+(concSpell()?'<div class="conc-note">Ends if you cast another concentration spell, are incapacitated, or fail a DC 10 Constitution save (or half the damage taken, whichever is higher).</div>':"")+"</div>";
     }
-    var cSpells=shCard("Spells",filters+spBody);
+    var empty=known.filter(visible).length?"":'<p class="res-sub">'+(known.length?"No spells match the current filters.":"No spells selected.")+'</p>';
+    var cSpells=shCard("Spells",filters+empty+spBody);
     var cSlots=shCard("Spell Slots",spellSlotsHtml(info));
     return cSlots+cSpells;
   }
@@ -406,8 +408,9 @@
   function featuresHTML(view){
     var featItems=featureCards();
     var origins={};featItems.forEach(function(item){if(item.origin)origins[item.origin]=true;});
-    var filters='<div class="cm-filter"><label>Search features<input type="search" id="sheetFeatureSearch" value="'+esc(uiState.sheet.featureQ||"")+'"></label><label>Source<select id="sheetFeatureOrigin"><option value="">All sources</option>'+Object.keys(origins).sort().map(function(origin){return '<option value="'+esc(origin)+'"'+(origin===uiState.sheet.featureOrigin?' selected':'')+'>'+esc(origin)+'</option>';}).join("")+'</select></label></div>';
-    featItems=featItems.filter(function(item){return (!uiState.sheet.featureQ||item.name.toLowerCase().indexOf(uiState.sheet.featureQ.toLowerCase())>=0)&&(!uiState.sheet.featureOrigin||item.origin===uiState.sheet.featureOrigin);});
+    var chosenOrigin=Object.prototype.hasOwnProperty.call(origins,uiState.sheet.featureOrigin)?uiState.sheet.featureOrigin:"";
+    var filters='<div class="cm-filter"><label>Search features<input type="search" id="sheetFeatureSearch" value="'+esc(uiState.sheet.featureQ||"")+'"></label><label>Source<select id="sheetFeatureOrigin"><option value="">All sources</option>'+Object.keys(origins).sort().map(function(origin){return '<option value="'+esc(origin)+'"'+(origin===chosenOrigin?' selected':'')+'>'+esc(origin)+'</option>';}).join("")+'</select></label></div>';
+    featItems=featItems.filter(function(item){return (!uiState.sheet.featureQ||item.name.toLowerCase().indexOf(uiState.sheet.featureQ.toLowerCase())>=0)&&(!chosenOrigin||item.origin===chosenOrigin);});
     var fxKeys={};fxAvailable().forEach(function(e){fxKeys[e.key]=1;});
     featItems.forEach(function(fi){                 // a checkbox beside anything you switch on in play
       var bare=fi.name.replace(/\s*\[[^\]]*\]\s*$/,"").replace(/\s*\(optional\)\s*$/,"");
