@@ -123,7 +123,7 @@
   function isSidekickClass(){var c=classBySlug(state.slug);return !!(c&&c.isSidekick);}
 
   /* ---------- entry / tag renderer ---------- */
-  function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+  function esc(s){return window.CCUIComponents.esc(s);}
   function atkText(code){var m={"mw":"Melee Weapon Attack:","rw":"Ranged Weapon Attack:","mw,rw":"Melee or Ranged Weapon Attack:","ms":"Melee Spell Attack:","rs":"Ranged Spell Attack:","ms,rs":"Melee or Ranged Spell Attack:"};return m[code]||"Attack:";}
   // short rules for the conditions, so a {@condition ...} link explains itself on hover
   var CONDITION_INFO={
@@ -2918,16 +2918,13 @@
     (state.customLanguages||[]).forEach(add);
     return out;
   }
-  function shCard(title,body){return body?'<div class="sheet-card"><h3>'+esc(title)+'</h3><div class="cbody">'+body+"</div></div>":"";}
+  function shCard(title,body){return window.CCUIComponents.card(title,body);}
   function acStatHtml(ac){
     var i=acInfo(),custom=i.overridden||(parseInt(state.sheet.acOther,10)||0);
     return '<div class="top-stat has-why ac-stat'+(custom?" ac-custom":"")+'" id="acStat" title="Armor Class: '+esc(acBreakdown())+'">'+
       '<div class="tv">'+ac+(custom?' <span class="ac-mark">&#9998;</span>':"")+'</div><div class="tl">Armor Class</div></div>';
   }
-  function topStat(v,l,why){
-    return '<div class="top-stat'+(why?" has-why":"")+'"'+(why?' title="'+esc(why)+'"':"")+'>'+
-      '<div class="tv">'+v+'</div><div class="tl">'+esc(l)+"</div></div>";
-  }
+  function topStat(v,l,why){return window.CCUIComponents.value(v,l,why);}
   // plain-language explanations for the derived header numbers
   function profWhy(){return "Proficiency bonus for level "+state.level+" = 2 + floor(("+state.level+" - 1) / 4) = +"+profBonus();}
   function initWhy(){

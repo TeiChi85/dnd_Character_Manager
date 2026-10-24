@@ -47,6 +47,7 @@ for(var i=0;i<dataFiles.length;i++) eval(readFile(ROOT+"resources\\"+dataFiles[i
 var featDir=fso.GetFolder(ROOT+"resources\\features"),fe=new Enumerator(featDir.Files);
 for(;!fe.atEnd();fe.moveNext()){var f=fe.item();if(/\.js$/i.test(f.Name))eval(readFile(f.Path));}
 
+eval(readFile(ROOT+"js\\ui\\components.js"));
 eval(readFile(ROOT+"js\\character-validation.js"));
 eval(readFile(ROOT+"js\\core\\character-state.js"));
 eval(readFile(ROOT+"js\\core\\rules-core.js"));

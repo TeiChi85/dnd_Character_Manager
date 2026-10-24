@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import components from '../js/ui/components.js';
+let checks=0;
+function eq(a,b){assert.deepEqual(a,b);checks++;}
+eq(components.esc('<img title="x">&'), '&lt;img title=&quot;x&quot;&gt;&amp;');
+eq(components.esc(null),'null');eq(components.card('Empty',''),'');
+assert.match(components.card('<script>','<p>Trusted</p>'),/<h3>&lt;script&gt;<\/h3>/);checks++;
+assert.match(components.value('12','AC','"why"'),/title="&quot;why&quot;"/);checks++;
+const p=Object.freeze({name:'<b>Unsafe</b>',key:'"key',open:false,pending:true,bodyHTML:'<p>Content</p>'});
+assert.match(components.panel(p),/feature collapsed needs/);checks++;
+assert.match(components.panel(p),/&lt;b&gt;Unsafe&lt;\/b&gt;/);checks++;
+eq(components.panel(p),components.panel(p));
+const callbacks=new Set(),classes=new Set(['collapsed']);let toggles=0,open;
+const panel={getAttribute:()=> 'panel',classList:{toggle(k){classes.has(k)?classes.delete(k):classes.add(k);},contains:k=>classes.has(k)}};
+const head={parentNode:panel,addEventListener(type,fn){callbacks.add(fn);},removeEventListener(type,fn){callbacks.delete(fn);}};
+const host={querySelectorAll:()=>[head]};
+components.collapse(host,(key,value)=>{eq(key,'panel');toggles++;open=value;});
+components.collapse(host,(key,value)=>{eq(key,'panel');toggles++;open=value;});
+eq(callbacks.size,1);for(const fn of callbacks)fn();eq(toggles,1);eq(open,true);
+components.collapse({querySelectorAll:()=>[]},()=>assert.fail('empty panel'));checks++;
+console.log(`${checks} UI component checks passed`);
