@@ -107,3 +107,6 @@ body.cm-view .cm-library .btn:not(.ghost),body.cm-view .cm-sheet .btn:not(.ghost
 .cm-view .server-tools button,.cm-view .global-theme-bar button{font-family:inherit}
 .cm-view .server-tools .btn.ghost{background:var(--cm-surface);color:var(--cm-text);border-color:var(--cm-border)}
 .cm-sheet .sc-h{font-size:16px}.cm-sheet .spell-lvl-h{color:var(--cm-text)}
+
+.cm-view .cm-app-title{min-width:0;overflow-wrap:anywhere;line-height:1.15}
+.cm-view .global-theme-bar .btn{flex-shrink:0}
