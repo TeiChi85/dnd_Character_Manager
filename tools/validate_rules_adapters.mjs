@@ -24,6 +24,7 @@ function harness({inventory=[],features=[],conditions=[],edition='classic',activ
   const context=vm.createContext({window:{scrollTo(){}},document,console});
   vm.runInContext(`window.CC_CLASSES=[{slug:'synthetic',name:'Wizard'}];window.CC_SPELLS=[{name:'Placeholder',level:0,cls:{}}];window.CC_ITEMS=${JSON.stringify(inventory)};
     window.testFeatures=${JSON.stringify(features)};window.CC_CONDMODS={synthetic:${JSON.stringify(conditions)}};`,context);
+  for(const name of ['components','rule-text','creator','character-sheet','navigation','library'])vm.runInContext(source(`js/ui/${name}.js`),context);
   vm.runInContext(source('js/character-validation.js'),context);
   for(const name of ['rules-core','rules-engine','character-state'])vm.runInContext(source(`js/core/${name}.js`),context);
   const startup='initServerLibrary();\n  populateLevels();showEdition();showDataVersion();';

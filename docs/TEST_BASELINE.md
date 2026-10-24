@@ -276,3 +276,50 @@ manuelle Browser-/Dateipicker-/PDF-Pruefung und kein erneuter Live-Library-Test;
 die synthetischen Harnesses ersetzen Browser-APIs und Teile des UI-Startablaufs.
 Windows-/Ubuntu-CI wird am PR nach dem Push ueberwacht und im Abschlussbericht
 verlinkt. Der lokale Cache `Microsoft/` bleibt ausserhalb aller Commits.
+
+## PR06: UI-Komponenten und Rendering
+
+Am **24.10.2026** nach bestaetigtem Merge von PR05 (#7) gestartet.
+Basis `ac8431c`, Branch `refactor/06-ui-components`, PR #8. Windows,
+Node 24.22.1, Python 3.15.1 aus `.venv`. Vorher/Nachher verwenden denselben
+bereits vorhandenen lokalen Regeldatensatz; keine Datengenerierung oder Downloads.
+Designreferenz: die vom Nutzer bereitgestellte `docs/UI_DESIGN_SPEC.md` v1.0.
+
+| Befehl | Vorher | Nachher | Exitcode |
+| --- | --- | --- | --- |
+| `node tools/validate_rules.mjs` | 1.533 Checks, 0 Fehler, 242/242 Unterklassen | 1.533 Checks, 0 Fehler, 242/242 Unterklassen | jeweils 0 |
+| `cscript.exe //nologo tools\validate.js` | 1.533 Checks, 0 Fehler, 242/242 Unterklassen | 1.533 Checks, 0 Fehler, 242/242 Unterklassen | jeweils 0 |
+| `node tools/validate_ui_components.mjs` | Neu | 117 Checks bestanden | 0 |
+| `node tools/validate_character_state.mjs` | PR05-Referenz: 90 | 90 Checks bestanden | 0 |
+| `node tools/validate_rules_core.mjs` | PR05-Referenz: 172 | 172 Checks bestanden | 0 |
+| `node tools/validate_rules_engine.mjs` | PR05-Referenz: 92 | 92 Checks bestanden | 0 |
+| `node tools/validate_rules_adapters.mjs` | PR05-Referenz: 82 | 82 Checks bestanden | 0 |
+| `node tools/validate_server_frontend.mjs` | PR05-Referenz: 37 | 37 Szenarien bestanden | 0 |
+| `node tools/validate_class_loading.mjs` | PR05-Referenz: 8 | 8 bestanden, plus erneut importierte 37 Frontendszenarien | 0 |
+| `node tools/validate_theme.mjs` | PR05-Referenz: 14 | 14 Szenarien bestanden | 0 |
+| `node tools/validate_rules.mjs --self-test` | PR05-Referenz: bestanden | Smoke, Missing-Data-Diagnose und Failure-Exit bestaetigt | 0 |
+| `.\.venv\Scripts\python.exe -m unittest discover -s server -t . -v` | PR05-Referenz: 39 | 39 Tests bestanden | 0 |
+
+Nur die beiden vollstaendigen Regel-Runner wurden in diesem Auftrag als neue
+Vorher-/Nachher-Laeufe ausgefuehrt; PR05-Referenzen sind historische Ergebnisse.
+Alle fachlichen Legacy-Assertions bleiben erhalten. Die Module werden in den
+Harnesses produktiv geladen; statische DOM-/Icon-Suchen lesen deren neue Pfade.
+Gefrorene State-Tests belegen nebenwirkungsfreies Rendering und Navigation;
+die frueheren HP-/Inventory-Seiteneffekte liegen an State-Uebergaengen.
+
+Ein zusaetzlicher lokaler Vergleich mit `origin/main:js/app.js` bestaetigte
+**40 identische HTML-Ausgaben**: zehn Creator-/Sheet-Ziele in vier synthetischen
+Zustaenden (leer/Grundklasse, Background/Species, Level/Gear/Spells und manuelle
+HP/Ressourcen/Entwuerfe/unsicherer Benutzertext). Kein Layout-/CSS-Redesign.
+
+Die datenfreien Tests einschliesslich neuer UI-Suite bestanden in GitHub Actions
+unter Windows und Ubuntu auf `64f48f5` (Run `40109949053`). Weitere Pushes werden
+am PR erneut geprueft. Die lokale vollstaendige Suite wird in CI weiterhin
+nicht ausgefuehrt, weil keine privaten Regeldaten hochgeladen werden.
+
+Grenzen: Homebrew mangels lokalem Buch explizit uebersprungen. Keine manuelle
+Browser-/Touch-/Dateipicker-/PDF-Abnahme und kein erneuter Live-Library-Test.
+Der vorhandene Benutzerserver und dessen Charakterbibliothek wurden nicht fuer
+Testschreibzugriffe verwendet. `Microsoft/` bleibt ausserhalb der Commits.
+Uebergangsadapter, DOM-Host-Vertrag und PR07-Voraussetzungen stehen in
+[UI_ARCHITECTURE.md](UI_ARCHITECTURE.md).

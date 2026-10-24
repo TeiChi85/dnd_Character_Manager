@@ -1,5 +1,10 @@
 # CharacterManager unter Windows 11 entwickeln
 
+**PR06 UI-Architektur:** Creator, Charakterbogen, Navigation, Bibliotheksdarstellung
+und Regeltexte liegen in `js/ui/`. `app.js` verbindet sie mit State und Rules.
+[Schnittstellen und Vorbereitung fuer PR07](docs/UI_ARCHITECTURE.md).
+Zusatztest ohne Regeldaten: `node tools/validate_ui_components.mjs`.
+
 **Phase 4:** Revisionssicheres Loeschen mit privatem Papierkorb, automatische
 Dateibackups, globale Theme-Auswahl und gemeinsame JSON-Validierung sind
 implementiert. [Bedienung, Testbefehle und Grenzen](docs/PHASE4.md),

@@ -7,6 +7,7 @@
 | Flask-API und Speicher | `python -m unittest discover -s server -t . -v` | Nein; synthetische Charaktere und temporaere Ordner | Ja |
 | Rules Core | `node tools/validate_rules_core.mjs` | Nein; synthetische Zahlen und Stufengrenzen | Ja |
 | Character State / Serialization | `node tools/validate_character_state.mjs` | Nein; Defaults und synthetische v1-Exports | Ja |
+| UI-Komponenten und echte App-Renderer | `node tools/validate_ui_components.mjs` | Nein; synthetische Daten, DOM und Events | Ja |
 | Rules Engine | `node tools/validate_rules_engine.mjs` | Nein; synthetische AC-/Kampf-/Item-/Effekteingaben | Ja |
 | Rules-Adapter | `node tools/validate_rules_adapters.mjs` | Nein; echte App-Adapter mit synthetischer Ausruestung und Features | Ja |
 | Frontend/API-Integration im simulierten Browser | `node tools/validate_server_frontend.mjs` | Nein; synthetische Daten | Ja |
@@ -30,6 +31,7 @@ Im Repository-Stamm unter Windows PowerShell:
 .\.venv\Scripts\python.exe -m unittest discover -s server -t . -v
 node tools\validate_rules_core.mjs
 node tools\validate_character_state.mjs
+node tools\validate_ui_components.mjs
 node tools\validate_rules_engine.mjs
 node tools\validate_rules_adapters.mjs
 node tools\validate_server_frontend.mjs
@@ -162,3 +164,31 @@ Derived-Testzugriff. Ihre bisherigen String-Suchen fuer Proficiency-Persistierun
 und Legacy-Migration pruefen jetzt echte Serialize-/Normalize-Ergebnisse.
 Der Backend-Fixture-Test liest die Feldliste aus dem State-Modul. Assertions und
 Erwartungswerte fuer Regeln werden dadurch nicht entfernt oder abgeschwaecht.
+
+## PR06: UI- und Interaktionsabdeckung
+
+`validate_ui_components.mjs` verwendet CommonJS-Komponenten und die echten
+Browsermodule mit `ui_test_harness.mjs`. Dieser kleine Standardbibliotheks-
+Harness liest `index.html`, baut einen simulierten DOM mit ersetzbaren Knoten,
+lokalen Listener-Sets und einfachen Selektoren und startet die produktive App
+mit synthetischen Katalogen. Er ersetzt keine Renderer oder Regeladapter.
+Aufrufzaehler an den Factory-Exports belegen die produktive Modulverwendung.
+
+117 Checks decken Initialisierung, leere Daten, Escaping, Collapsible Panels,
+wiederholtes Rendering, Listener-Anzahl, isolierte Listen/Sheet-Abschnitte,
+Klasse/Level/Unterklasse, Background, Species, Abilities, Equipment und Spells
+ab. Dazu kommen Navigation/Menue/Escape, HP, Ressourcen, Inspiration, Effekte,
+Rest, Importbereinigung und Reset. Tief eingefrorene persistente Objekte
+pruefen alle Creator-/Sheet-Renderer und Schrittwechsel ohne State-Mutation.
+
+Busy-/Dirty-Schutz, Datei-/Serverimporte, Identitaet, Dialoge und verspaetete
+Klassen-/Dateiantworten bleiben in den bestehenden 37 Frontend- und 8
+Klassenladeszenarien abgedeckt. Diese Harnesses laden nun alle produktiven
+UI-Module. Der Legacy-Harness behaelt saemtliche Assertions; statische
+DOM-/Icon-Vertragssuchen lesen zusaetzlich die ausgelagerten Quelldateien.
+
+Der DOM-Harness prueft kein CSS-Layout, echtes Event-Bubbling, Touch-Verhalten
+oder native Datei-/PDF-Dialoge. Ein lokaler HTML-Vergleich mit der Basisversion
+kann ueber `createUIHarness({appSource: baselineSource})` durchgefuehrt werden;
+CI benoetigt weder Git-Historie noch Regeldaten. Architektur, Vertrauensgrenzen
+fuer HTML und PR07-Voraussetzungen: [UI_ARCHITECTURE.md](UI_ARCHITECTURE.md).
