@@ -16,6 +16,7 @@
   var state=freshCharacter();
   var serverLibrary=null;
   var featureLoadGeneration=0;
+  var CCRules = (typeof window !== "undefined" && window.CCRulesCore) || null;
   // Wipe every character field in place (keeping the same state object) and reset the form controls.
   function resetCharacter(){
     featureLoadGeneration++;
@@ -117,7 +118,11 @@
     starOn:'<svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="m12 4.2 2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4-3.9-3.8 5.4-.8z"/></svg>'
   };
   function editionLabel(ed){return ed==="one"?"2024 Revised Rules":"2014 Core Rules";}
-  function autoHp(faces,level){if(!faces||!level)return null;return faces+(level-1)*(Math.floor(faces/2)+1);}
+  function autoHp(faces,level){
+    if(CCRules&&CCRules.autoHp)return CCRules.autoHp(faces,level);
+    if(!faces||!level)return null;
+    return faces+(level-1)*(Math.floor(faces/2)+1);
+  }
   function classesForEdition(ed){return ALL.filter(function(c){return c.edition===ed;}).sort(function(a,b){return a.name.localeCompare(b.name);});}
   function classBySlug(slug){return ALL.filter(function(c){return c.slug===slug;})[0]||null;}
   function isSidekickClass(){var c=classBySlug(state.slug);return !!(c&&c.isSidekick);}
@@ -1736,7 +1741,10 @@
     for(var i=0;i<6;i++){var r=[];for(var j=0;j<4;j++)r.push(1+Math.floor(Math.random()*6));r.sort(function(a,b){return a-b;});out.push(r[1]+r[2]+r[3]);}
     return out.sort(function(a,b){return b-a;});
   }
-  function abMod(score){return Math.floor((score-10)/2);}
+  function abMod(score){
+    if(CCRules&&CCRules.abMod)return CCRules.abMod(score);
+    return Math.floor((score-10)/2);
+  }
   function modStr(m){return (m>=0?"+":"")+m;}
   function capWord(s){s=String(s);return s.charAt(0).toUpperCase()+s.slice(1);}
   // aggregate every ability increase the character has earned/chosen so far
@@ -2342,7 +2350,10 @@
 
   /* ---------- spells ---------- */
   // the Ioun Stone of Mastery and its kind raise this, and everything built on it follows
-  function profBonus(){return Math.floor((state.level-1)/4)+2+itemBonuses().prof;}
+  function profBonus(){
+    if(CCRules&&CCRules.profBonus)return CCRules.profBonus(state.level,itemBonuses().prof);
+    return Math.floor((state.level-1)/4)+2+itemBonuses().prof;
+  }
   /* The ability a class uses for its save DCs. Spellcasters use their spellcasting
      ability; martial classes key their DC-bearing features off a set ability — the Monk's
      ki DC is Wisdom, and the MPMB sheet uses Constitution for Barbarian, Dexterity for
@@ -2373,12 +2384,13 @@
     return ab?8+profBonus()+abMod(totalScore(ab))+itemBonuses().spellDc:null;
   }
   function maxSpellLevel(caster,L){
+    if(CCRules&&CCRules.maxSpellLevel)return CCRules.maxSpellLevel(caster,L);
     switch(caster){
-      case "full":return Math.min(9,Math.ceil(L/2));
-      case "pact":return Math.min(5,Math.ceil(L/2));
-      case "1/2":return L<2?0:Math.min(5,Math.ceil(L/4));
-      case "artificer":return Math.min(5,Math.ceil(L/4));
-      default:return Math.min(9,Math.ceil(L/2));
+    case "full":return Math.min(9,Math.ceil(L/2));
+    case "pact":return Math.min(5,Math.ceil(L/2));
+    case "1/2":return L<2?0:Math.min(5,Math.ceil(L/4));
+    case "artificer":return Math.min(5,Math.ceil(L/4));
+    default:return Math.min(9,Math.ceil(L/2));
     }
   }
   /* The Spellcaster Sidekick has no spellcasting ability of its own: you choose a role,
@@ -2571,6 +2583,7 @@
   /* ---------- character sheet ---------- */
   var SKILL_ABILITY={Acrobatics:"Dexterity","Animal Handling":"Wisdom",Arcana:"Intelligence",Athletics:"Strength",Deception:"Charisma",History:"Intelligence",Insight:"Wisdom",Intimidation:"Charisma",Investigation:"Intelligence",Medicine:"Wisdom",Nature:"Intelligence",Perception:"Wisdom",Performance:"Charisma",Persuasion:"Charisma",Religion:"Intelligence","Sleight of Hand":"Dexterity",Stealth:"Dexterity",Survival:"Wisdom"};
   function maxHP(){
+    if(CCRules&&CCRules.maxHP)return CCRules.maxHP(state.hdFaces,state.level,abMod(totalScore("Constitution")),state.manualHp);
     if(state.manualHp!=null)return state.manualHp;
     var faces=state.hdFaces;if(!faces)return null;
     var con=abMod(totalScore("Constitution")),avg=Math.floor(faces/2)+1;
@@ -2896,9 +2909,19 @@
     var ps=proficientSkills(),ex=expertiseSkills(),p=0;
     if(ps[sk])p=(ex[sk]?profBonus()*2:profBonus());
     // a Stone of Good Luck applies to every ability check, so to every skill
-    return abMod(totalScore(SKILL_ABILITY[sk]))+p+itemBonuses().abilCheck;
+    var base=abMod(totalScore(SKILL_ABILITY[sk]))+p+itemBonuses().abilCheck;
+    if(CCRules&&CCRules.skillBonus){
+      return CCRules.skillBonus(totalScore(SKILL_ABILITY[sk]), profBonus(), !!ps[sk], !!ex[sk], itemBonuses().abilCheck);
+    }
+    return base;
   }
-  function passiveScore(sk){return 10+skillBonus(sk);}
+  function passiveScore(sk){
+    if(CCRules&&CCRules.passiveScore){
+      var ps=proficientSkills(),ex=expertiseSkills();
+      return CCRules.passiveScore(totalScore(SKILL_ABILITY[sk]), profBonus(), !!ps[sk], !!ex[sk], itemBonuses().abilCheck);
+    }
+    return 10+skillBonus(sk);
+  }
   function expertiseHtml(f){
     var ps=proficientSkills(),pool=[];
     for(var s in ps)pool.push(s);
@@ -2919,6 +2942,9 @@
   }
   // proficiency where you have it, plus a Cloak of Protection and the like
   function saveBonus(a){
+    if(CCRules&&CCRules.saveBonus){
+      return CCRules.saveBonus(totalScore(a), profBonus(), !!savingProfs()[a], itemBonuses().save);
+    }
     return abMod(totalScore(a))+(savingProfs()[a]?profBonus():0)+itemBonuses().save;
   }
   function savingProfs(){
