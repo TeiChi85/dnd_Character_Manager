@@ -4,7 +4,7 @@
   if(typeof module!=="undefined"&&module.exports)validation=require("../character-validation.js");
   var SAVE_KEYS=["edition","name","className","source","slug","hdFaces","level","manualHp","subclassName","choices","background","bgIsCustom","bgCustomName","bgCustomDesc","bgChoices","details","race","raceLineage","raceChoices","abilities","equipment","spells","customLanguages","customProficiencies","customDefences","portrait","sheet"];
   var transient={
-    "":{fdata:1,openPanels:1,uiState:1,derivedState:1,id:1,revision:1,updated_at:1,identity:1,charFileHandle:1},
+    "":{fdata:1,openPanels:1,screen:1,currentStep:1,uiState:1,derivedState:1,id:1,revision:1,updated_at:1,identity:1,charFileHandle:1},
     equipment:{filterType:1,filterQ:1},spells:{levelFilter:1,q:1,preview:1},
     sheet:{invQ:1,invAdd:1,acEditOpen:1,dark:1}
   };

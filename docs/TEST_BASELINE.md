@@ -248,7 +248,7 @@ oder Commits von Regeldaten; derselbe vorhandene lokale Datensatz wie in PR04.
 | --- | --- | --- | --- |
 | `node tools/validate_rules.mjs` | 1.533 Checks, 0 Fehler, 242/242 Unterklassen | 1.533 Checks, 0 Fehler, 242/242 Unterklassen | jeweils 0 |
 | `cscript.exe //nologo tools\validate.js` | 1.533 Checks, 0 Fehler, 242/242 Unterklassen | 1.533 Checks, 0 Fehler, 242/242 Unterklassen | jeweils 0 |
-| `node tools/validate_character_state.mjs` | Neu | 88 Checks bestanden | 0 |
+| `node tools/validate_character_state.mjs` | Neu | 90 Checks bestanden | 0 |
 | `node tools/validate_server_frontend.mjs` | Historisch 26 Szenarien | 37 Szenarien bestanden | 0 |
 | `node tools/validate_class_loading.mjs` | Historisch 8 Szenarien | 8 bestanden, plus erneut importierte 37 Frontendszenarien | 0 |
 | `node tools/validate_rules_adapters.mjs` | Historisch 52 Checks | 82 Checks bestanden | 0 |

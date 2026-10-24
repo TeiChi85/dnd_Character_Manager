@@ -30,11 +30,11 @@ for(const edition of ['classic','one']){
   normalized.equipment.inventory[0].qty=99;eq(saved.equipment.inventory[0].qty,2);
   roundtrip.extension.unrecognized.push('change');eq(saved.extension.unrecognized.length,2);
 }
-const legacy={...minimal,openPanels:{one:true},fdata:{large:true},id:'server-id',revision:4,updated_at:'today',
+const legacy={...minimal,openPanels:{one:true},screen:'build',currentStep:'sheet',fdata:{large:true},id:'server-id',revision:4,updated_at:'today',
   equipment:{filterType:'Weapon',filterQ:'Blade',extension:7},spells:{q:'Fire',levelFilter:'2',preview:'Spell'},
   sheet:{invQ:'Blade',invAdd:'Draft',acEditOpen:true,dark:true,hpCurrent:7,hpEdited:true,extension:8}};
 const clean=model.serialize(model.normalize(freeze(legacy)));
-for(const key of ['id','revision','updated_at','fdata','openPanels']){eq(Object.hasOwn(clean,key),false);}
+for(const key of ['id','revision','updated_at','fdata','openPanels','screen','currentStep']){eq(Object.hasOwn(clean,key),false);}
 eq(clean.equipment.extension,7);eq(clean.sheet.extension,8);
 for(const [parent,keys] of Object.entries({equipment:['filterType','filterQ'],spells:['q','levelFilter','preview'],sheet:['invQ','invAdd','acEditOpen','dark']}))
   for(const key of keys)eq(Object.hasOwn(clean[parent],key),false);

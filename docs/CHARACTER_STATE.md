@@ -81,7 +81,7 @@ Used Hit Dice, Spell Slots und Feature-Ressourcen liegen weiterhin in `sheet.res
 Unbekannte sichere Root-/Nested-Zusatzfelder werden beim Laden und erneuten
 Speichern erhalten, statt wie bisher unbekannte Root-Felder zu verlieren.
 Explizit reservierte Root-Pfade `id`, `revision`, `updated_at`, `identity`,
-`charFileHandle`, `uiState`, `derivedState`, `fdata` und `openPanels` werden
+`charFileHandle`, `uiState`, `derivedState`, `fdata`, `openPanels`, `screen` und `currentStep` werden
 ausgeschlossen. Gleichnamige Felder innerhalb eines Items sind keine Root-
 Servermetadaten und bleiben erhalten. Alle bekannten UI-Pfade aus der Feldtabelle
 werden auch aus alten Saves entfernt. Dateihandles, Funktionen, Accessors,
