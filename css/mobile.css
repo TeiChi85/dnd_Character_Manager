@@ -110,3 +110,5 @@ body.cm-view .cm-library .btn:not(.ghost),body.cm-view .cm-sheet .btn:not(.ghost
 
 .cm-view .cm-app-title{min-width:0;overflow-wrap:anywhere;line-height:1.15}
 .cm-view .global-theme-bar .btn{flex-shrink:0}
+
+.cm-dialog #deleteConfirm{background:var(--cm-danger);border-color:var(--cm-danger);color:var(--cm-on-accent)}
