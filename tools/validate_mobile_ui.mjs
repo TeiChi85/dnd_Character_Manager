@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import {createUIHarness} from './ui_test_harness.mjs';
+let checks=0;
+const eq=(actual,expected)=>{assert.deepEqual(actual,expected);checks++;};
+const clone=value=>JSON.parse(JSON.stringify(value));
+const h=createUIHarness({mobile:true}),{app,document:doc}=h;
+h.click('createNew');eq(doc.getElementById('createOptions').classList.contains('hidden'),false);
+h.chooseClass();app.navigation.setStep('sheet');
+app.derived.fdata.classFeatures=[{name:'Synthetic Feature',level:1,entries:['Sample feature text.']}];
+app.state.spells.cantrips=['Synthetic Bolt|TEST'];
+app.ui.sheet.featureOrigin='Unavailable source';app.sheet.renderSection('features',doc.getElementById('activeSheetSection'));
+eq(doc.querySelector('#activeSheetSection .sc-h').textContent.includes('Synthetic Feature'),true);
+app.ui.sheet.spellLevel='9';app.sheet.renderSection('spells',doc.getElementById('activeSheetSection'));
+eq(doc.querySelector('#activeSheetSection .sc-h').textContent.includes('Synthetic Bolt'),true);
+app.render();
+eq(doc.querySelectorAll('#hpCur').length,1);eq(doc.querySelectorAll('.abil-cell').length,6);
+const original=clone(app.serialize());
+for(const key of ['skills','combat','resources','spells','inventory','features','defences','background','rest','training']){
+ h.click('sectionSelect');eq(doc.getElementById('sectionDialog').open,true);
+ const option=doc.querySelector('[data-section="'+key+'"]');assert.ok(option);checks++;
+ option.click();eq(app.ui.sheet.section,key);eq(doc.getElementById('sectionDialog').open,false);
+ eq(doc.activeElement.id,'sectionSelect');eq(clone(app.serialize()),original);
+ eq(doc.querySelectorAll('#hpCur').length,1);
+ if(key==='skills')eq(doc.querySelectorAll('#activeSheetSection .line-row').length,18);
+}
+h.click('sectionSelect');h.click('sectionClose');eq(doc.activeElement.id,'sectionSelect');
+h.change('hpCur','5','input');eq(app.state.sheet.hpCurrent,5);
+app.render();eq(doc.getElementById('hpCur').value,'5');
+h.click('mobileLibrary');eq(app.ui.screen,'edition');eq(app.state.sheet.hpCurrent,5);
+h.click('mobileCharacter');eq(app.ui.currentStep,'sheet');eq(app.state.sheet.hpCurrent,5);
+h.click('mobileBuild');eq(app.ui.currentStep,'class');eq(doc.body.classList.contains('cm-view'),false);
+h.click('toSheet');eq(doc.body.classList.contains('cm-view'),true);
+const view=app.ui.sheet.section;app.render();eq(app.ui.sheet.section,view);
+const library=h.window.CCLibraryUI.create({document:doc,ui:app.ui,actions:{isBusy:()=>false,open(){},remove(){}}});
+const items=[{id:'a',name:'<img unsafe>',className:'Synthetic Class',level:2,edition:'classic',updated_at:'2026-10-24T12:00:00Z'},
+ {id:'b',name:'Second',className:'Other',level:3,edition:'one',updated_at:'2026-10-24T13:00:00Z'}];
+library.onList(items,'');eq(doc.querySelectorAll('.server-character').length,2);eq(doc.querySelector('.rc-name').textContent,'<img unsafe>');
+eq(doc.querySelector('.rc-name').innerHTML,'');h.change('librarySearch','second','input');eq(doc.querySelectorAll('.server-character').length,1);
+h.change('librarySearch','missing','input');eq(doc.querySelectorAll('.server-character').length,0);eq(doc.getElementById('serverListStatus').textContent,'No characters match your search.');
+console.log(`${checks} mobile UI checks passed`);
