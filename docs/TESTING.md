@@ -5,6 +5,9 @@
 | Test | Befehl | Regeldaten | GitHub Actions |
 | --- | --- | --- | --- |
 | Flask-API und Speicher | `python -m unittest discover -s server -t . -v` | Nein; synthetische Charaktere und temporaere Ordner | Ja |
+| Rules Core | `node tools/validate_rules_core.mjs` | Nein; synthetische Zahlen und Stufengrenzen | Ja |
+| Rules Engine | `node tools/validate_rules_engine.mjs` | Nein; synthetische AC-/Kampf-/Item-/Effekteingaben | Ja |
+| Rules-Adapter | `node tools/validate_rules_adapters.mjs` | Nein; echte App-Adapter mit synthetischer Ausruestung und Features | Ja |
 | Frontend/API-Integration im simulierten Browser | `node tools/validate_server_frontend.mjs` | Nein; synthetische Daten | Ja |
 | Klassenlade-Regression | `node tools/validate_class_loading.mjs` | Nein; kontrollierte synthetische Scriptantworten | Ja |
 | Theme-Verhalten | `node tools/validate_theme.mjs` | Nein; simulierte Browser- und Speicher-APIs | Ja |
@@ -24,6 +27,9 @@ Im Repository-Stamm unter Windows PowerShell:
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s server -t . -v
+node tools\validate_rules_core.mjs
+node tools\validate_rules_engine.mjs
+node tools\validate_rules_adapters.mjs
 node tools\validate_server_frontend.mjs
 node tools\validate_class_loading.mjs
 node tools\validate_theme.mjs
@@ -34,6 +40,9 @@ Die entsprechenden plattformneutralen Befehle sind:
 
 ```sh
 python -m unittest discover -s server -t . -v
+node tools/validate_rules_core.mjs
+node tools/validate_rules_engine.mjs
+node tools/validate_rules_adapters.mjs
 node tools/validate_server_frontend.mjs
 node tools/validate_class_loading.mjs
 node tools/validate_theme.mjs
@@ -69,7 +78,10 @@ Damit bleiben die fachlichen Assertions an einer Stelle; die bestehende
 `cscript.exe`-Ausfuehrung bleibt als Windows-Vergleich erhalten. `app.js` wird
 weiterhin nur im Testlauf textuell um einen kontrollierten Zugriff auf interne
 Funktionen ergaenzt. Diese Uebergangsschnittstelle bleibt auf die Testdatei
-beschraenkt und kann nach der Regel-Extraktion in PR 03 ersetzt werden.
+beschraenkt. Seit PR 04 laedt die Suite vor der App auch `rules-core.js` und
+`rules-engine.js`. Aufrufzaehler und 20 zusaetzliche Assertions belegen, dass
+die produktiven Core-/Engine-Pfade erreicht werden. Die alten App-Fallbacks
+sind damit nicht mehr die alleinige Grundlage der Regelchecks.
 
 Ohne generierte Dateien beendet sich der vollstaendige Runner mit Exitcode 2
 und nennt die fehlende Ressource. Fehlende Daten werden nicht als Skip oder
@@ -81,6 +93,16 @@ Datensatz ein Homebrew-Buch vorhanden ist; andernfalls wird der Skip sichtbar
 ausgegeben. Die bekannte Referenz bei passendem Datensatz ist 1.513 Checks,
 0 Fehler und 242/242 Unterklassen; Werte sind nur mit identischen Daten direkt
 vergleichbar.
+
+Die PR04-Referenz mit demselben lokalen Datensatz ist 1.533 Checks (die bisherigen
+1.513 plus 20 Aufrufnachweise), 0 Fehler und 242/242 Unterklassen. Die separaten
+Core-/Engine-/Adapter-Suiten pruefen die ausgelagerte Implementierung auch ohne
+Regeldaten. Die Adapter-Suite ersetzt Featureliste, Startaufruf und Redraw-Route;
+AC, Item-/Attunement-Filter, Angriffszeilen, aktive Effekte und Zauber-Summary
+verwenden echte App-Funktionen. Es handelt sich weiterhin um einen simulierten
+DOM, keine Sichtpruefung im Browser. Echte Sheet-HTML-Ausgabe und Equip-/Level-
+Event-Handler werden fuer beide Editionen geprueft. Eine manipulierte Engine-AC
+muss den Sheet-Test in einem separaten Prozess mit Exitcode 1 scheitern lassen.
 
 `node tools/validate_rules.mjs --self-test` ist fuer CI und Umgebungen ohne
 Regeldaten gedacht. Es prueft mit temporaeren, synthetischen Dateien den
@@ -95,8 +117,9 @@ Testinfrastruktur, nicht die Korrektheit von D&D-Regeln.
   `tools/validate_*.mjs`-Suite pruefen; keine Regeldaten fuer reine Zustands-,
   API- oder DOM-Verhaltensfaelle verwenden.
 - Fachliche Regelberechnungen als neue Assertions in `tools/validate.js`
-  ergaenzen. Der Node-Runner fuehrt diese Datei aus, sodass keine zweite
-  Assertion-Kopie gepflegt werden muss.
+  ergaenzen, wenn reale Klassen-/Regeldaten beteiligt sind. Reine Core-/Engine-
+  Mathematik mit synthetischen Eingaben direkt in den entsprechenden Unit-Suiten
+  pruefen. Der Node-Runner und WSH fuehren dieselbe Legacy-Assertiondatei aus.
 - Erwartungswerte nur nach nachvollziehbarer Regel- und Fehleranalyse aendern.
 - Keine geschuetzten Regeltexte, Regeldatensaetze, Homebrew-Dateien oder
   Charakterexporte als Testfixtures einchecken.
