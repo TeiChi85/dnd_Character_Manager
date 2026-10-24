@@ -219,12 +219,16 @@
     Array.prototype.forEach.call(host.querySelectorAll(".pip,.death-dot,.fx-box,.fx-pill,.sc-h,.atk-row.has-desc,#acStat,#inspBox,#sheetPortrait,.lang-x,.prof-x,.def-x"),function(node){
       node.setAttribute("role","button");node.setAttribute("tabindex","0");
       var label=node.getAttribute("data-k")||node.getAttribute("data-fx-set")||node.getAttribute("data-fx")||node.textContent.trim()||node.id;
-      if(node.classList.contains("death-dot"))label="Death save "+node.getAttribute("data-kind")+" "+(+node.getAttribute("data-i")+1);
+      if(node.id==="sheetPortrait")label="Change character portrait";
+      if(node.id==="acStat")label="Edit armor class: "+node.textContent.trim();
+      if(node.classList.contains("death-dot"))label="Death save "+(node.getAttribute("data-kind")==="succ"?"success":"failure")+" "+(+node.getAttribute("data-i")+1);
+      if(node.classList.contains("pip")){var parts=(node.getAttribute("data-k")||"").split(":"),number=+parts.pop()+1;label=parts[0]==="slot"?"Level "+parts[1]+" spell slot "+number:parts[0]==="hd"?"Hit die "+number:parts.join(":")+" use "+number;}
       node.setAttribute("aria-label",label);
       function update(){if(node.classList.contains("pip")||node.classList.contains("fx-box"))node.setAttribute("aria-pressed",String(node.classList.contains("used")||node.classList.contains("on")));if(node.classList.contains("sc-h"))node.setAttribute("aria-expanded",String(node.parentNode.classList.contains("open")));}
       update();node.addEventListener("click",update);
       node.addEventListener("keydown",function(event){if(event.target===node&&(event.key==="Enter"||event.key===" ")){event.preventDefault();node.click();}});
     });
+    Array.prototype.forEach.call(host.querySelectorAll(".line-row .dot"),function(dot){dot.setAttribute("role","img");dot.setAttribute("aria-label",dot.classList.contains("exp")?"Expertise":dot.classList.contains("on")?"Proficient":"Not proficient");});
     var labels={hpCur:"Current hit points",hpTemp:"Temporary hit points",xpInput:"Experience points",invSearch:"Search inventory items",invCustom:"Custom item name",acOther:"Other armor class modifier",acOverride:"Override armor class"};
     Array.prototype.forEach.call(host.querySelectorAll("input,select"),function(node){
       if(!node.getAttribute("aria-label"))node.setAttribute("aria-label",labels[node.id]||node.getAttribute("title")||node.getAttribute("placeholder")||node.getAttribute("data-k")||node.id||"Quantity");
