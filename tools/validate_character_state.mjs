@@ -7,6 +7,13 @@ const freeze=value=>{if(value&&typeof value==='object'){Object.values(value).for
 const minimal={_app:'dnd-cc',_v:1};
 const a=model.createDefault(),b=model.createDefault();
 eq(a,b);eq(a.sheet,model.createGameplay());eq(a.equipment,model.createEquipment());
+function assertIndependent(left,right){
+  if(!left||typeof left!=='object')return;
+  assert.notEqual(left,right);checks++;
+  for(const key of Object.keys(left))assertIndependent(left[key],right[key]);
+}
+assertIndependent(a,b);
+eq(Object.keys(model.serialize(b)).sort(),['_app','_v',...model.persistentKeys].sort());
 a.sheet.res['hd:0']=true;a.equipment.inventory.push({name:'One'});a.abilities.base.Strength=20;
 eq(b.sheet.res,{});eq(b.equipment.inventory,[]);eq(b.abilities.base.Strength,8);
 eq(model.normalize(minimal),b);eq(model.normalize({...minimal,equipment:{},sheet:{},spells:{}}),b);
@@ -39,4 +46,6 @@ for(const invalid of [{...minimal,sheet:null},{...minimal,level:21},{...minimal,
 const cyclic={...minimal};cyclic.extra=cyclic;rejects(cyclic);
 rejects({...minimal,extension:()=>0});
 const accessor={...minimal};Object.defineProperty(accessor,'extension',{enumerable:true,get(){throw new Error('getter must not run');}});rejects(accessor);
+const list=[];Object.defineProperty(list,'0',{enumerable:true,get(){throw new Error('getter must not run');}});rejects({...minimal,extension:list});
+eq(model.serialize({...b,extension:[undefined,1]}).extension,[null,1]);
 console.log(`${checks} character state and serialization checks passed`);

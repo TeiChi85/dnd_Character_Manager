@@ -6,6 +6,7 @@ import vm from 'node:vm';
 const librarySource=await readFile(new URL('../js/server-library.js',import.meta.url),'utf8');
 const validationSource=await readFile(new URL('../js/character-validation.js',import.meta.url),'utf8');
 const rulesCoreSource=await readFile(new URL('../js/core/rules-core.js',import.meta.url),'utf8');
+const characterStateSource=await readFile(new URL('../js/core/character-state.js',import.meta.url),'utf8');
 const rulesEngineSource=await readFile(new URL('../js/core/rules-engine.js',import.meta.url),'utf8');
 const appSource=(await readFile(new URL('../js/app.js',import.meta.url),'utf8')).replace(/\r\n/g,'\n');
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
@@ -15,7 +16,7 @@ const reply=(status,value)=>({ok:status>=200&&status<300,status,
   headers:{get:()=> 'application/json'},json:async()=>clone(value)});
 
 function harness({offline=false,transport=null}={}){
-  const elements=new Map(),listeners={},requests=[],records=new Map(),downloads=[],alerts=[];
+  const elements=new Map(),listeners={},requests=[],records=new Map(),downloads=[],alerts=[],pendingReaders=[];
   let next=1,fail=null,confirmAnswer=true,timer;
   function element(tag='div'){
     const classes=new Set();
@@ -64,25 +65,25 @@ function harness({offline=false,transport=null}={}){
     confirm:()=>confirmAnswer,alert:message=>{alerts.push(message);},
     Blob:class{constructor(parts){this.parts=parts;}},
     URL:{createObjectURL(blob){downloads.push(blob.parts.join(''));return 'blob:test';},revokeObjectURL(){}},
-    FileReader:class{readAsText(file){this.result=file.text;this.onload();}}});
+    FileReader:class{readAsText(file){if(file.error){this.onerror();return;}this.result=file.text;if(file.defer)pendingReaders.push(this);else this.onload();}}});
   vm.runInContext(validationSource,context);vm.runInContext(librarySource,context);vm.runInContext(rulesCoreSource,context);
-  vm.runInContext(rulesEngineSource,context);
+  vm.runInContext(rulesEngineSource,context);vm.runInContext(characterStateSource,context);
   // Only presentation/rule-data population is stubbed. State restoration, local
   // files, serialization, event wiring and the complete API client run unchanged.
   const startup='initServerLibrary();\n  populateLevels();showEdition();showDataVersion();';
   assert.ok(appSource.includes(startup));
   vm.runInContext(appSource.replace(startup,`
     window.__renders=[];
-    render=function(){window.__renders.push({slug:state.slug,className:state.className,fdata:state.fdata});};
+    render=function(){window.__renders.push({slug:state.slug,className:state.className,fdata:derivedState.fdata});};
     populateClasses=populateBackgrounds=populateRaces=populateLevels=function(){};
     initServerLibrary();
-    window.__test={state:state,serialize:serializeChar,load:loadCharObj,loadFile:loadCharFile,
-      saveLocal:saveChar,reset:resetCharacter,home:showEdition,library:serverLibrary,
+    window.__test={state:state,ui:uiState,derived:derivedState,setStep:setStep,serialize:serializeChar,load:loadCharObj,loadFile:loadCharFile,
+      fileHandle:function(){return charFileHandle;},saveLocal:saveChar,reset:resetCharacter,home:showEdition,library:serverLibrary,
       renderEntry:renderEntry,
       failNextRender:function(){var original=render;render=function(){render=original;throw new Error('synthetic render failure');};}};
   `),context);
   const app=window.__test;
-  return {app,window,document,elements,listeners,requests,records,downloads,alerts,
+  return {app,window,document,elements,listeners,requests,records,downloads,alerts,pendingReaders,
     setFailure(fn){fail=fn;},confirm(value){confirmAnswer=value;},timeout(){timer?.();},
     entry(identifier){const record=records.get(identifier);return {...record,name:record.character.name};},
     status:()=>document.getElementById('serverSaveStatus').textContent,
@@ -236,6 +237,9 @@ await test('Every new action is present in HTML and the API script precedes app.
   assert.ok(html.includes('src="js/core/rules-engine.js"'));
   assert.ok(html.indexOf('src="js/core/rules-core.js"')<html.indexOf('src="js/core/rules-engine.js"'));
   assert.ok(html.indexOf('src="js/core/rules-engine.js"')<html.indexOf('src="js/app.js"'));
+  assert.ok(html.includes('src="js/core/character-state.js"'));
+  assert.ok(html.indexOf('src="js/character-validation.js"')<html.indexOf('src="js/core/character-state.js"'));
+  assert.ok(html.indexOf('src="js/core/character-state.js"')<html.indexOf('src="js/app.js"'));
   assert.ok(html.includes('id="recentList"'));assert.ok(html.includes('id="btnLoadStart"'));
 });
 
@@ -336,6 +340,123 @@ await test('Shared validator bounds nested structures and preserves valid legacy
   assert.deepEqual(clone(check(value)),clone(value));
   h.app.load(value);await h.app.library.save(false);assert.equal(h.status(),'Saved to server.');
   assert.equal(h.window.CCCharacterJSON.parse('{"_app":"dnd-cc","_v":1,"choices":{"text":"braces {} [] and \\\"quotes\\\""}}')._v,1);
+});
+
+await test('UI navigation, filters and panels never dirty the persistent snapshot',async()=>{
+  const h=harness();h.app.load(h.fixture());await h.app.library.save(false);
+  const before=clone(h.app.serialize());
+  h.app.ui.openPanels.feature=true;h.app.ui.equipment.filterQ='Blade';h.app.ui.equipment.filterType='Weapon';
+  h.app.ui.spells.q='Fire';h.app.ui.spells.levelFilter='2';h.app.ui.spells.preview='Preview';
+  h.app.ui.sheet.invQ='Ring';h.app.ui.sheet.invAdd='Keepsake';h.app.ui.sheet.acEditOpen=true;
+  h.app.setStep('spells');h.app.setStep('sheet');
+  assert.deepEqual(clone(h.app.serialize()),before);assert.equal(h.app.library.dirty(),false);
+  assert.equal(h.app.ui.sheet.invAdd,'Keepsake');assert.equal(h.app.ui.equipment.filterQ,'Blade');
+});
+await test('Character and gameplay edits each dirty the server baseline',async()=>{
+  const edits=[s=>s.name='Changed',s=>s.level=6,s=>{s.sheet.hpCurrent=0;s.sheet.hpEdited=true;},
+    s=>s.sheet.hpTemp='5',s=>s.sheet.res['slot:1:0']=true,s=>s.sheet.res['hd:0']=true,
+    s=>s.sheet.active.Rage=true,s=>s.sheet.conc='Synthetic',s=>s.spells.cantrips.push('New'),
+    s=>s.equipment.inventory.push({name:'New gear',attuned:true}),s=>s.sheet.acOverride='19'];
+  for(const edit of edits){
+    const h=harness();h.app.load(h.fixture());await h.app.library.save(false);
+    edit(h.app.state);assert.equal(h.app.library.dirty(),true);
+    await h.app.library.save(false);assert.equal(h.app.library.dirty(),false);
+  }
+});
+await test('UI edits during saving stay clean, gameplay edits keep the transmitted snapshot dirty',async()=>{
+  for(const gameplay of [false,true]){
+    const h=harness();h.app.load(h.fixture());let respond;
+    h.setFailure((path,options)=>options.method==='POST'?new Promise(resolve=>{respond=()=>resolve(reply(201,
+      {id:id(1),revision:1,updated_at:'2026-10-24T12:00:00Z',character:JSON.parse(options.body)}));}):Promise.resolve(reply(200,{characters:[]})));
+    const pending=h.app.library.save(false),snapshot=h.requests.find(r=>r.method==='POST').body;
+    h.app.ui.equipment.filterQ='UI';if(gameplay)h.app.state.sheet.res['slot:1:0']=true;
+    respond();await pending;
+    assert.equal(h.app.library.dirty(),gameplay);
+    assert.equal(JSON.parse(snapshot).sheet.res['slot:1:0'],undefined);
+    assert.equal(h.app.state.sheet.res['slot:1:0'],gameplay?true:undefined);
+  }
+});
+await test('Legacy UI is reset, extension fields and gameplay survive local/server roundtrips',async()=>{
+  const h=harness(),legacy=h.fixture();
+  legacy.sheet={...legacy.sheet,hpCurrent:0,hpEdited:true,hpTemp:'4',res:{'hd:0':true,'slot:1:0':true},
+    inspiration:true,deathSucc:2,deathFail:1,active:{Effect:true},conc:'Test',xp:'345',acOther:'2',acOverride:'18',
+    dark:true,invQ:'stale',invAdd:'stale',acEditOpen:true};
+  legacy.equipment.filterQ='stale';legacy.spells.preview='stale';legacy.extension={allowed:'kept'};
+  h.app.loadFile({text:JSON.stringify(legacy)});const clean=clone(h.app.serialize());
+  assert.equal(h.app.ui.sheet.invQ,'');assert.equal(h.app.ui.spells.preview,'');
+  assert.equal(clean.sheet.hpEdited,true);assert.equal(clean.sheet.hpCurrent,0);assert.equal(clean.sheet.dark,undefined);
+  assert.equal(clean.equipment.filterQ,undefined);assert.deepEqual(clean.extension,legacy.extension);
+  await h.app.library.save(false);h.app.reset();await h.app.library.open(id(1));
+  assert.deepEqual(clone(h.app.serialize()),clean);assert.equal(h.app.library.dirty(),false);
+  h.app.saveLocal();assert.deepEqual(JSON.parse(h.downloads[0]),clean);
+});
+await test('Invalid local inputs preserve character, UI, handle and server identity',async()=>{
+  const h=harness(),handle={name:'original.json'};
+  h.app.loadFile({text:JSON.stringify(h.fixture())},handle);await h.app.library.save(false);
+  h.app.ui.equipment.filterQ='keep';const before=clone(h.app.serialize());
+  for(const file of [{text:'{'},{text:JSON.stringify({_app:'dnd-cc',_v:1,sheet:{res:[]}})},
+    {size:2097153,text:'{}'},{text:JSON.stringify({_app:'dnd-cc',_v:1,portrait:'invalid'})},{error:true}]){
+    h.app.loadFile(file,{name:'invalid.json'});assert.deepEqual(clone(h.app.serialize()),before);
+    assert.equal(h.app.fileHandle(),handle);assert.equal(h.app.ui.equipment.filterQ,'keep');
+  }
+  h.app.state.name='Still original';await h.app.library.save(false);
+  assert.equal(h.requests.filter(r=>r.method==='PUT').at(-1).path,`/api/characters/${id(1)}`);
+});
+await test('Local render failure restores UI, file handle, dirty state and conflict identity',async()=>{
+  const h=harness(),handle={name:'original.json'};
+  h.app.loadFile({text:JSON.stringify(h.fixture())},handle);await h.app.library.save(false);
+  h.app.ui.sheet.invAdd='draft';h.app.state.name='Unsaved';const before=clone(h.app.serialize());
+  h.app.failNextRender();h.app.loadFile({text:JSON.stringify({...h.fixture(),name:'Replacement'})},{name:'replacement.json'});
+  assert.deepEqual(clone(h.app.serialize()),before);assert.equal(h.app.fileHandle(),handle);
+  assert.equal(h.app.ui.sheet.invAdd,'draft');assert.equal(h.app.library.dirty(),true);
+  await h.app.library.save(false);assert.equal(h.records.get(id(1)).character.name,'Unsaved');
+});
+await test('Failed or superseded asynchronous imports never replace the active character',async()=>{
+  const h=harness(),handle={name:'original.json'};
+  h.app.loadFile({text:JSON.stringify(h.fixture())},handle);await h.app.library.save(false);
+  const before=clone(h.app.serialize()),pending={...h.fixture(),slug:'delayed',name:'Pending'};
+  h.app.loadFile({text:JSON.stringify(pending)},{name:'pending.json'});
+  assert.deepEqual(clone(h.app.serialize()),before);h.document.head.children.at(-1).onerror();
+  assert.deepEqual(clone(h.app.serialize()),before);assert.equal(h.app.fileHandle(),handle);
+  h.app.loadFile({text:JSON.stringify(pending)});const late=h.document.head.children.at(-1);
+  h.app.reset();h.window.CC_FEATURE_DATA.delayed={classFeatures:[]};late.onload();
+  assert.equal(h.app.state.name,'');assert.equal(h.app.derived.fdata,null);
+});
+await test('Edits while local data loads may cancel switching without losing state',async()=>{
+  const h=harness();h.app.load(h.fixture());
+  h.app.loadFile({text:JSON.stringify({...h.fixture(),slug:'delayed'})});
+  const script=h.document.head.children.at(-1);h.app.state.name='Edited while loading';h.confirm(false);
+  h.window.CC_FEATURE_DATA.delayed={classFeatures:[]};script.onload();
+  assert.equal(h.app.state.name,'Edited while loading');assert.equal(h.app.state.slug,'synthetic-class');
+});
+
+await test('Late file readers cannot replace a reset or a newer imported character',async()=>{
+  const h=harness();h.app.load(h.fixture());
+  h.app.loadFile({text:JSON.stringify({...h.fixture(),name:'Old read'}),defer:true});
+  h.app.reset();h.pendingReaders[0].onload();assert.equal(h.app.state.name,'');
+  h.app.loadFile({text:JSON.stringify({...h.fixture(),name:'First'}),defer:true});
+  h.app.loadFile({text:JSON.stringify({...h.fixture(),name:'Newest'}),defer:true});
+  h.pendingReaders[2].onload();h.pendingReaders[1].onload();assert.equal(h.app.state.name,'Newest');
+});
+await test('A failed pending import does not invalidate the active class response',async()=>{
+  const h=harness();h.window.CC_CLASSES.push({slug:'active-class',name:'Active',edition:'classic',hdFaces:8});
+  h.app.state.edition='classic';h.document.getElementById('classSelect').handlers.change({target:{value:'active-class'}});
+  const active=h.document.head.children.at(-1);
+  h.app.loadFile({text:JSON.stringify({...h.fixture(),slug:'failing-import'})});
+  h.document.head.children.at(-1).onerror();
+  const data={classFeatures:[]};h.window.CC_FEATURE_DATA['active-class']=data;active.onload();
+  assert.equal(h.app.state.slug,'active-class');assert.equal(h.app.derived.fdata,data);
+});
+
+await test('A delayed local import cannot switch character during a server save',async()=>{
+  const h=harness();h.app.load(h.fixture());
+  h.app.loadFile({text:JSON.stringify({...h.fixture(),slug:'delayed',name:'Must not replace'})});
+  const script=h.document.head.children.at(-1);let respond;
+  h.setFailure((path,options)=>options.method==='POST'?new Promise(resolve=>{respond=()=>resolve(reply(201,
+    {id:id(1),revision:1,updated_at:'2026-10-24T12:00:00Z',character:JSON.parse(options.body)}));}):Promise.resolve(reply(200,{characters:[]})));
+  const pending=h.app.library.save(false);h.window.CC_FEATURE_DATA.delayed={classFeatures:[]};script.onload();
+  assert.equal(h.app.state.name,'Synthetic Character');assert.match(h.status(),/Please wait/);
+  respond();await pending;assert.equal(h.app.library.dirty(),false);
 });
 
 export const summary=`${results.length} frontend integration scenarios passed`;

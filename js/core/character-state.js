@@ -26,13 +26,21 @@
     if(typeof value!=="object")throw new Error("Character data must contain only JSON values");
     if(ancestors.indexOf(value)>=0)throw new Error("Cyclic character data");
     var next=ancestors.concat([value]),out;
-    if(Array.isArray(value))return value.map(function(v){return copy(v,path+"[]",next);});
+    if(Array.isArray(value)){
+      out=[];
+      for(var i=0;i<value.length;i++){
+        var entry=Object.getOwnPropertyDescriptor?Object.getOwnPropertyDescriptor(value,String(i)):{value:value[i]};
+        if(entry&&(entry.get||entry.set))throw new Error("Character data cannot contain accessors");
+        out.push(!entry||entry.value===undefined?null:copy(entry.value,path+"[]",next));
+      }
+      return out;
+    }
     if(!object(value))throw new Error("Character data must contain plain objects");
     out={};
     Object.keys(value).sort().forEach(function(k){
       if(k==="__proto__"||k==="constructor"||k==="prototype")throw new Error("Unsafe character key");
       if(transient[path]&&own.call(transient[path],k))return;
-      var descriptor=Object.getOwnPropertyDescriptor(value,k);
+      var descriptor=Object.getOwnPropertyDescriptor?Object.getOwnPropertyDescriptor(value,k):{value:value[k]};
       if(descriptor.get||descriptor.set)throw new Error("Character data cannot contain accessors");
       if(descriptor.value!==undefined)out[k]=copy(descriptor.value,path?path+"."+k:k,next);
     });
