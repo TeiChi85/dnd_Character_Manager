@@ -2,7 +2,7 @@
   "use strict";
 
   function abMod(score){
-    if(score===null||score===undefined||Number.isNaN(Number(score)))return 0;
+    if(score===null||score===undefined||isNaN(Number(score)))return 0;
     return Math.floor((Number(score)-10)/2);
   }
 
