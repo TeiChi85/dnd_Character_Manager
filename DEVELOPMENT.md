@@ -162,6 +162,9 @@ synthetische Daten/simulierter DOM):
 node tools\validate_server_frontend.mjs
 node tools\validate_class_loading.mjs
 node tools\validate_theme.mjs
+node tools\validate_rules_core.mjs
+node tools\validate_rules_engine.mjs
+node tools\validate_rules_adapters.mjs
 node tools\validate_rules.mjs --self-test
 ```
 

@@ -27,6 +27,11 @@
 - Tests: Python `-m unittest discover -s server -t . -v`; Node 18+ ohne npm-Pakete:
   `tools/validate_server_frontend.mjs`, `tools/validate_theme.mjs`,
   `tools/validate_class_loading.mjs` und `tools/validate_rules.mjs --self-test`.
+  Zusaetzlich `tools/validate_rules_core.mjs`, `tools/validate_rules_engine.mjs`
+  und `tools/validate_rules_adapters.mjs` fuer die produktiven Core-/Engine-
+  Berechnungen und synthetische Sheet-/Event-Integration ausfuehren.
+  Schnittstellen und Grenzen: `docs/RULES_ARCHITECTURE.md`. Regeldatenaufbereitung
+  und UI bleiben in `app.js`; die Engine hat keinen DOM-/API-/State-Zugriff.
   Die Klassenlade-Suite verwendet die Frontend-Testumgebung mit synthetischen
   Daten und kontrollierter Antwortreihenfolge. Sie importiert ausserdem den
   Frontend-Harness und fuehrt dessen Tests erneut aus.

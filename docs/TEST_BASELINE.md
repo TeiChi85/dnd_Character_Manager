@@ -184,3 +184,55 @@ Vergleich `node tools/validate_rules.mjs` gegen die oben dokumentierte
 WSH-Ausgabe erforderlich. Bis diese Laeufe erfolgreich sind, ist die
 plattformunabhaengige Migration implementiert, aber nicht vollstaendig
 verifiziert; PR 03 sollte auf diesen Ergebnissen aufbauen.
+
+## PR 04: Komplexe Rules Engine
+
+Tatsaechlich ausgefuehrt am **24.10.2026**, Windows, Node **24.22.1**,
+Python **3.15.1** aus `.venv`. Ausgangspunkt: `e39fe52` (PR03 in main),
+vorhandener Arbeitsbranch `refactor/04-rules-engine` auf identischem Commit.
+Das vorhandene ungetrackte `Microsoft/` bleibt ausserhalb der Aenderung.
+Es wurden ausschliesslich bereits vorhandene lokale Regeldaten verwendet,
+keine Daten heruntergeladen, generiert oder hochgeladen.
+
+| Befehl | Vor Extraktion | Nach Extraktion | Exitcode |
+| --- | --- | --- | --- |
+| `node tools/validate_rules.mjs` | 1.513 Checks, 0 Fehler, 242/242 Unterklassen | 1.533 Checks, 0 Fehler, 242/242 Unterklassen | jeweils 0 |
+| `cscript.exe //nologo tools\validate.js` | 1.513 Checks, 0 Fehler, 242/242 Unterklassen | 1.533 Checks, 0 Fehler, 242/242 Unterklassen | jeweils 0 |
+| `node tools/validate_rules_core.mjs` | Neu; vor der komplexen Extraktion 172 bestanden | 172 bestanden | 0 |
+| `node tools/validate_rules_engine.mjs` | Neu | 92 bestanden | 0 |
+| `node tools/validate_rules_adapters.mjs` | Neu | 52 bestanden | 0 |
+| `node tools/validate_server_frontend.mjs` | In PR04 vorher nicht ausgefuehrt | 26 Szenarien bestanden | 0 |
+| `node tools/validate_class_loading.mjs` | In PR04 vorher nicht ausgefuehrt | 8 Szenarien und erneut 26 importierte Frontendszenarien bestanden | 0 |
+| `node tools/validate_theme.mjs` | In PR04 vorher nicht ausgefuehrt | 14 Szenarien bestanden | 0 |
+| `node tools/validate_rules.mjs --self-test` | In PR04 vorher nicht ausgefuehrt | Synthetischer Smoke-Test, Missing-Data-Diagnose und Fehler-Exit bestaetigt | 0 |
+| `.\.venv\Scripts\python.exe -m unittest discover -s server -t . -v` | In PR04 vorher nicht ausgefuehrt | 39 Tests bestanden | 0 |
+
+Die 20 neuen Legacy-Assertions pruefen Aufrufzaehler an den tatsaechlich
+geladenen Core-/Engine-Funktionen; die bisherigen 1.513 Assertions und deren
+Erwartungswerte bleiben unveraendert. PR03 hatte den Core noch nicht in diese
+Suite geladen. `Number.isNaN(Number(score))` wurde durch das aequivalente
+`isNaN(Number(score))` ersetzt, damit der produktive Pfad auch im historischen
+JScript-Runner laeuft. Node-/WSH-Ergebnisse stimmen auf demselben Datensatz
+ueberein.
+
+Die drei neuen datenfreien Suiten sind in den bestehenden Windows-/Ubuntu-
+Workflow aufgenommen. Sie testen unter anderem negative Modifikatoren,
+AC-Kandidaten statt Addition alternativer Formeln, Quellen/Overrides,
+Item-/Attunement-Filter, Monk-Editionen, Kampfstyles, Kritschwellen und blockierte
+Effekte. Gefrorene Engine-Eingaben pruefen die nebenwirkungsfreie Berechnung.
+Die Adapter-Suite laedt die echten Browsermodule und App-Funktionen mit
+synthetischen Daten. Featureliste, Startup und Redraw-Route sind dort ersetzt.
+Die echte Sheet-HTML-Ausgabe und Equip-/Level-Handler werden fuer beide Editionen
+geprueft. Eine absichtlich falsche Engine-AC fuehrt im isolierten Kindprozess
+zum erwarteten Exitcode 1; der gesamte Adaptertest endet mit Exitcode 0.
+
+Bekannte unterschiedliche Zauberbonus-Pfade und bestehende Sonderfaelle sind
+in [RULES_ARCHITECTURE.md](RULES_ARCHITECTURE.md) dokumentiert und bewusst beibehalten.
+Keine stillschweigende Regelkorrektur, keine Aenderung von SAVE_KEYS,
+JSON-Format, Backend, Lizenz, Weapon Mastery oder Extra Attack.
+
+Grenzen: Homebrew in beiden vollstaendigen Laeufen mangels Buch uebersprungen.
+Keine manuelle Browser-/PDF-/Dateipicker-Abnahme, kein neuer Live-Library-Test
+und kein Linux-Lauf lokal. Die Windows-/Ubuntu-CI wird nach dem Push am PR
+geprueft; ihr Ergebnis wird im abschliessenden Bericht mit dem PR verlinkt.
+Die lokalen Ergebnisse oben sind keine Aussage ueber einen GitHub-Actions-Lauf.

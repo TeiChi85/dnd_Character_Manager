@@ -6,6 +6,7 @@ import vm from 'node:vm';
 const librarySource=await readFile(new URL('../js/server-library.js',import.meta.url),'utf8');
 const validationSource=await readFile(new URL('../js/character-validation.js',import.meta.url),'utf8');
 const rulesCoreSource=await readFile(new URL('../js/core/rules-core.js',import.meta.url),'utf8');
+const rulesEngineSource=await readFile(new URL('../js/core/rules-engine.js',import.meta.url),'utf8');
 const appSource=(await readFile(new URL('../js/app.js',import.meta.url),'utf8')).replace(/\r\n/g,'\n');
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
 const clone=value=>JSON.parse(JSON.stringify(value));
@@ -65,6 +66,7 @@ function harness({offline=false,transport=null}={}){
     URL:{createObjectURL(blob){downloads.push(blob.parts.join(''));return 'blob:test';},revokeObjectURL(){}},
     FileReader:class{readAsText(file){this.result=file.text;this.onload();}}});
   vm.runInContext(validationSource,context);vm.runInContext(librarySource,context);vm.runInContext(rulesCoreSource,context);
+  vm.runInContext(rulesEngineSource,context);
   // Only presentation/rule-data population is stubbed. State restoration, local
   // files, serialization, event wiring and the complete API client run unchanged.
   const startup='initServerLibrary();\n  populateLevels();showEdition();showDataVersion();';
@@ -231,6 +233,9 @@ await test('Every new action is present in HTML and the API script precedes app.
     assert.ok(html.includes(`id="${name}"`));
   assert.ok(html.indexOf('src="js/server-library.js"')<html.indexOf('src="js/app.js"'));
   assert.ok(html.indexOf('src="js/core/rules-core.js"')<html.indexOf('src="js/app.js"'));
+  assert.ok(html.includes('src="js/core/rules-engine.js"'));
+  assert.ok(html.indexOf('src="js/core/rules-core.js"')<html.indexOf('src="js/core/rules-engine.js"'));
+  assert.ok(html.indexOf('src="js/core/rules-engine.js"')<html.indexOf('src="js/app.js"'));
   assert.ok(html.includes('id="recentList"'));assert.ok(html.includes('id="btnLoadStart"'));
 });
 
