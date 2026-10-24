@@ -65,6 +65,9 @@ character-storage/
 # Raw rules, homebrew and character exports: conservative default for all JSON.
 # Add a narrowly scoped exception only for reviewed, redistributable source fixtures.
 *.json
+!/tools/browser/package.json
+!/tools/browser/package-lock.json
+/tools/browser/artifacts/
 *.jsonl
 *.pdf
 *.7z

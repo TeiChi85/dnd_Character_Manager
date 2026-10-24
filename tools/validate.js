@@ -21,6 +21,7 @@ if(!Array.isArray){Array.isArray=function(v){return Object.prototype.toString.ca
 function El(){this.innerHTML="";this.value="";this.textContent="";this.style={};this.checked=false;
   this.classList={toggle:function(){},add:function(){},remove:function(){},contains:function(){return false;}};}
 El.prototype.addEventListener=function(){};
+El.prototype.setAttribute=function(){};
 El.prototype.querySelector=function(){return new El();};
 El.prototype.querySelectorAll=function(){return [];};
 El.prototype.getAttribute=function(){return "";};

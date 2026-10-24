@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="js/theme.js"></script>
 <title>D&D Character Creator</title>
 <link rel="icon" href="resources/favicon.ico" sizes="16x16 32x32 48x48">
@@ -27,27 +27,33 @@
 <script src="resources/pdf-fields.js"></script>
 <script src="resources/pdf-template.js"></script>
 <link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/mobile.css">
 </head>
 <body>
-<div class="global-theme-bar"><button class="btn ghost" id="darkToggle" type="button" title="Switch theme">Dark mode</button></div>
+<div class="global-theme-bar"><span class="cm-app-title">CharacterManager</span><button class="btn ghost" id="darkToggle" type="button" title="Switch theme">Dark mode</button></div>
 <div class="wrap">
 
   <!-- SCREEN 1: EDITION -->
-  <section id="screen-edition">
+  <section id="screen-edition" class="cm-library">
+    <h1>Your characters</h1>
+    <p>Open a character and continue your adventure.</p>
+    <button class="btn" id="createNew" type="button" aria-expanded="false" aria-controls="createOptions">Create New Character</button>
+    <div id="createOptions" class="hidden">
     <div class="edition-hero">
       <img class="hero-logo" src="resources/logo.png" alt="" width="256" height="256">
       <h1>Create a Character</h1>
       <p>First, choose which rules edition you want to build with.</p>
     </div>
     <div class="edition-cards">
-      <div class="ed-card" data-edition="classic">
+      <div class="ed-card" data-edition="classic" role="button" tabindex="0">
         <div class="yr">2014</div><div class="nm">Core Rules</div>
         <div class="ds">The 2014 Player's Handbook (PHB). Classic 5e classes and subclasses.</div>
       </div>
-      <div class="ed-card" data-edition="one">
+      <div class="ed-card" data-edition="one" role="button" tabindex="0">
         <div class="yr">2024</div><div class="nm">Revised Rules</div>
         <div class="ds">The 2024 Player's Handbook (XPHB). Updated 5e (2024) classes.</div>
       </div>
+    </div>
     </div>
     <div class="recent-wrap hidden" id="recentWrap">
       <div class="recent-h">Recent characters</div>
@@ -65,6 +71,8 @@
         <button class="btn ghost" id="serverRefresh" type="button">Refresh</button>
       </div>
       <p class="server-status" id="serverListStatus" role="status" aria-live="polite"></p>
+      <label for="librarySearch">Find a character</label>
+      <input type="search" id="librarySearch" placeholder="Search name or class">
       <div class="recent-list" id="serverCharacterList"></div>
     </section>
     <div class="reference-wrap">
@@ -320,7 +328,7 @@
   </div>
 </div>
 
-<dialog id="deleteDialog" aria-labelledby="deleteDialogTitle" aria-describedby="deleteDialogDescription">
+<dialog class="cm-dialog" id="deleteDialog" aria-labelledby="deleteDialogTitle" aria-describedby="deleteDialogDescription">
   <button class="dialog-close" id="deleteClose" type="button" aria-label="Close deletion dialog">&times;</button>
   <h2 id="deleteDialogTitle">Delete character?</h2>
   <p id="deleteDialogDescription">Move <strong id="deleteCharacterName"></strong> to the server trash? An administrator can restore it.</p>
@@ -340,6 +348,19 @@
 <script src="js/ui/character-sheet.js"></script>
 <script src="js/ui/navigation.js"></script>
 <script src="js/ui/library.js"></script>
+<nav class="cm-bottom" aria-label="Main navigation">
+  <button type="button" id="mobileLibrary">Library</button>
+  <button type="button" id="mobileCharacter" disabled>Character</button>
+  <button type="button" id="mobileBuild" disabled>Build</button>
+</nav>
+<dialog class="cm-dialog" id="sectionDialog" aria-labelledby="sectionTitle">
+  <header><h2 id="sectionTitle">Character sections</h2><button type="button" id="sectionClose" aria-label="Close sections">Close</button></header>
+  <div class="cm-options" id="sectionOptions"></div>
+</dialog>
+<dialog class="cm-dialog" id="characterActions" aria-labelledby="actionsTitle">
+  <header><h2 id="actionsTitle">Character actions</h2><button type="button" id="actionsClose">Close</button></header>
+  <div class="cm-options"><button type="button" id="mobileEdit">Edit character / level</button><button type="button" id="mobileExport">Save local JSON</button><button type="button" id="mobilePrint">Print / Save PDF</button></div>
+</dialog>
 <script src="js/app.js"></script>
 </body>
 </html>

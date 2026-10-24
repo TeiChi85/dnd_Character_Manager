@@ -221,3 +221,24 @@ nach `UI_DESIGN_SPEC.md` umsetzen. Danach echte Browser-/Touch-/Tastaturtests
 in beiden Themes und fuer Creator, Library und alle Sheet-Abschnitte ergaenzen.
 Rules-/State-Vertrag und die vollstaendige lokale Baseline bleiben die
 Regressionsgrenze fuer das visuelle Redesign.
+
+## PR07: Aktive mobile Hosts
+
+PR07 ergaenzt `css/mobile.css`, `navigation.syncShell()` und eine responsive
+Komposition in `character-sheet.renderSheet()`. Unter 1024 px werden `header`
+und genau ein gewaehlter Abschnitt ueber `renderSection(name, host)` in
+`mobileSheetHeader`/`activeSheetSection` gerendert. Desktop verwendet weiterhin
+`renderSheetInner`. Es gibt keine doppelte fachliche Darstellung oder Kopie
+des Character State. Resize wechselt die Komposition; Gameplay-Redraws behalten
+den aktiven Abschnitt aus `uiState.sheet.section` bei.
+
+Neue Sheet-Suchen/Filter liegen ebenfalls nur im UI-State. Lokale Handler
+aktualisieren ihren eigenen Host und stellen Suchfokus wieder her. Die
+Bibliothek filtert vorhandene Metadaten ohne zusaetzliche API- oder Datenlogik.
+`server-library.js`, Core/Engine und der v1-Vertrag bleiben unveraendert.
+
+`body.cm-view`, `.cm-library` und `.cm-sheet` begrenzen neue Layout-/Theme-Regeln.
+Die Aufteilung dieser Phase weicht bewusst vom frueheren PR06-Ausblick ab:
+PR07 gestaltet Library/Sheet; der mobile Builder ist PR08, Deployment PR09.
+Die verbindliche Designspezifikation selbst wird nicht geaendert.
+Navigation, History, Dialoge, Tokens, Tests und Grenzen: [MOBILE_UI.md](MOBILE_UI.md).
