@@ -38,6 +38,8 @@ jobs:
         run: node tools/validate_rules_core.mjs
       - name: Test character state and serialization
         run: node tools/validate_character_state.mjs
+      - name: Test UI components
+        run: node tools/validate_ui_components.mjs
       - name: Run rules engine unit tests
         run: node tools/validate_rules_engine.mjs
       - name: Run synthetic rules adapter tests
