@@ -6,6 +6,7 @@
 | --- | --- | --- | --- |
 | Flask-API und Speicher | `python -m unittest discover -s server -t . -v` | Nein; synthetische Charaktere und temporaere Ordner | Ja |
 | Rules Core | `node tools/validate_rules_core.mjs` | Nein; synthetische Zahlen und Stufengrenzen | Ja |
+| Character State / Serialization | `node tools/validate_character_state.mjs` | Nein; Defaults und synthetische v1-Exports | Ja |
 | Rules Engine | `node tools/validate_rules_engine.mjs` | Nein; synthetische AC-/Kampf-/Item-/Effekteingaben | Ja |
 | Rules-Adapter | `node tools/validate_rules_adapters.mjs` | Nein; echte App-Adapter mit synthetischer Ausruestung und Features | Ja |
 | Frontend/API-Integration im simulierten Browser | `node tools/validate_server_frontend.mjs` | Nein; synthetische Daten | Ja |
@@ -28,6 +29,7 @@ Im Repository-Stamm unter Windows PowerShell:
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s server -t . -v
 node tools\validate_rules_core.mjs
+node tools\validate_character_state.mjs
 node tools\validate_rules_engine.mjs
 node tools\validate_rules_adapters.mjs
 node tools\validate_server_frontend.mjs
@@ -41,6 +43,7 @@ Die entsprechenden plattformneutralen Befehle sind:
 ```sh
 python -m unittest discover -s server -t . -v
 node tools/validate_rules_core.mjs
+node tools/validate_character_state.mjs
 node tools/validate_rules_engine.mjs
 node tools/validate_rules_adapters.mjs
 node tools/validate_server_frontend.mjs
@@ -51,7 +54,7 @@ node tools/validate_rules.mjs --self-test
 
 Die Klassenlade-Suite importiert derzeit `validate_server_frontend.mjs`; der
 Import fuehrt dessen Tests ebenfalls aus. Werden beide Befehle wie oben
-ausgefuehrt, erscheinen die 26 Frontend-Szenarien daher zweimal. Das ist eine
+ausgefuehrt, erscheinen die Frontend-Szenarien daher zweimal. Das ist eine
 bekannte Doppelzaehlung, keine zusaetzliche Abdeckung.
 
 ## Vollstaendige Regelsuite lokal ausfuehren
@@ -139,3 +142,23 @@ Ein Test gilt nur dann als bestanden, wenn sein Prozess mit Exitcode 0 endet.
 Ein expliziter Skip (zum Beispiel Homebrew ohne lokale Homebrew-Daten) bleibt
 als Skip sichtbar; nicht vorhandene Pflicht-Regeldaten beenden stattdessen den
 vollstaendigen Lauf mit Fehler.
+
+## PR05: State- und Importabdeckung
+
+`validate_character_state.mjs` prueft den produktiven UMD/CommonJS-State-Vertrag
+direkt: Defaults und Referenzunabhaengigkeit, Gameplay-Roundtrips, Legacy-UI-
+Bereinigung, unbekannte Zusatzfelder, stabile Exportstruktur, gefrorene Eingaben,
+Zyklen und unsichere Objekt-Keys. Kein Regeldatensatz oder Backend erforderlich.
+
+`validate_server_frontend.mjs` prueft zusaetzlich UI- versus Gameplay-Dirty-State,
+Snapshots waehrend Saves, Dateihandle-/State-Rollback, invalide und verzoegerte
+Dateileser, fehlende Referenzen und Importwechsel mit synthetischen Daten.
+`validate_rules_adapters.mjs` prueft echte Sheet-/Rules-Ergebnisse nach Import,
+Reset, Levelwechsel und Charakterwechsel fuer beide Editionen. Die Harnesses
+laden `character-state.js` explizit; es gibt keinen alten State-Fallback.
+
+Die Legacy-Suite verwendet denselben persistenten State und einen separaten
+Derived-Testzugriff. Ihre bisherigen String-Suchen fuer Proficiency-Persistierung
+und Legacy-Migration pruefen jetzt echte Serialize-/Normalize-Ergebnisse.
+Der Backend-Fixture-Test liest die Feldliste aus dem State-Modul. Assertions und
+Erwartungswerte fuer Regeln werden dadurch nicht entfernt oder abgeschwaecht.
