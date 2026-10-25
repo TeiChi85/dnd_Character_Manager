@@ -12,6 +12,39 @@ unter `docs/archive/` sind kein aktueller Teststatus. Einrichtung und Serverstar
 Nach betroffenem Verhalten auswählen; bei übergreifenden Änderungen kombinieren.
 Die Tabelle ist kein Zwang zu Volltests für jeden kleinen Fix.
 
+- **Reine Dokumentation:** lokale Links/Anker und Linux-Pfadschreibweise prüfen,
+  Befehle gegen Skripte, Manifeste und CI abgleichen, Aussagen bei Bedarf gegen
+  Implementierung prüfen; gesamten Diff und `git diff --check` kontrollieren.
+  Ohne konkreten Anlass keine App-, Browser- oder Regeldatentests starten.
+- **Kleine isolierte Codeänderung:** Lint für betroffene Sprachen und passende
+  bestehende Tests für den produktiven Pfad ausführen. Einen gezielten
+  Regressionstest ergänzen, wenn er einen Fehler zuverlässig und sinnvoll absichert.
+- **Übergreifend oder risikoreich:** gesamte datenfreie Suite aus der Tabelle
+  unten und vollständigen Lint ausführen; passende Browser-, lokale Regeldaten-
+  oder isolierte Live-Prüfungen entsprechend dem betroffenen Verhalten ergänzen.
+
+Risiko richtet sich nach Auswirkung und Kopplung, nicht allein nach Zeilenzahl.
+Besondere Sorgfalt gilt Serialisierung/Validierung/Datenkompatibilität,
+Speicherung/Revisionen/Wiederherstellung, asynchronen Importen/Charakterwechseln
+und gemeinsamen Regelberechnungen/Schnittstellen. Layout- und
+Interaktionsänderungen benötigen passende Browserprüfungen; beide Editionen
+prüfen, soweit betroffen.
+
+Bei Verhaltensänderungen bestehende Tests aktualisieren oder gezielt ergänzen.
+Tests prüfen beobachtbares Verhalten und relevante Fehlerfälle, erzählen nicht
+nur die Implementierung nach. Keine Tests für reine Textkorrekturen, keine
+abgeschwächten Erwartungen oder entfernten Prüfungen nur für einen grünen Lauf.
+Neue Testdateien bei Bedarf in den bestehenden Prüfeinstieg und die CI aufnehmen;
+dies ist eine Regel für spätere Codeaufträge. Ein gemeinsamer Test-Runner bleibt
+ein möglicher separater Auftrag, kein bereits vorhandenes Root-npm-Testskript.
+
+Nach einem Fix zuerst fehlgeschlagene und direkt betroffene Prüfungen wiederholen;
+breiter nur bei neuen Änderungen oder verbleibenden Risiken. Fehlende Werkzeuge,
+Daten, ausstehende manuelle Geräteprüfungen und Skips offen benennen, Regeldaten
+nicht automatisch beschaffen. Lokale Auswahlprüfungen ersetzen nicht die
+abschließende [CI-Kontrolle](WORKFLOW.md#für-beide-modi). `Server: starten` ist
+ein optionaler Schritt zur manuellen Nutzerprüfung, kein Ersatz für Tests oder CI.
+
 | Änderungsart | Passende Prüfungen | Zusätzlich bei konkretem Anlass |
 | --- | --- | --- |
 | Dokumentation | Lokale Links/Anker und Linux-Pfadschreibweise, Befehle gegen Skripte/Manifeste/CI, Aussagen gegen Code, ganzer Diff und `git diff --check` | Keine App-/Browser-/Regeldatentests ohne Verhaltens- oder Konfigurationsänderung |

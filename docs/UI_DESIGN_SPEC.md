@@ -22,7 +22,13 @@ werden durch diese Einordnung nicht geändert oder abgeschwächt.
 
 ### 2.1 Farb-Tokens
 
-Die Dark-Mode-Farben sind gestalterische Näherungswerte aus den Referenzen; Kontrast vor Freigabe prüfen. Semantische Tokens auch für den vorhandenen Light Mode einsetzen, statt Dark-Mode-Farben fest in Komponenten zu kodieren.
+Die folgende Tabelle enthält die verbindlichen Dark-Zielwerte einschließlich
+der bestätigten Kontrastkorrekturen für Muted und Danger. Sie stimmen mit
+`css/mobile.css` im aktuellen Checkout überein. Kontrast pro Verwendung vor
+Freigabe prüfen. Semantische Tokens auch im Light Mode einsetzen, statt
+Dark-Farben fest in Komponenten zu kodieren. Vorhandene Tokens und Komponenten
+zuerst wiederverwenden, neue Varianten nur bei konkretem Bedarf.
+Designänderungen benötigen einen entsprechenden Auftrag; kein beiläufiges Redesign.
 
 | Token | Dark Mode | Verwendung |
 | --- | --- | --- |
@@ -30,10 +36,33 @@ Die Dark-Mode-Farben sind gestalterische Näherungswerte aus den Referenzen; Kon
 | `--cm-surface` | `#212B34` | Header, Karten, Panels |
 | `--cm-surface-raised` | `#293742` | Suchfelder, Filter, erhöhte/ausgewählte Flächen |
 | `--cm-text` | `#F3F5F6` | Haupttext und Spielwerte |
-| `--cm-muted` | `#8D9AA3` | Sekundärtext, Metadaten, Quellen |
+| `--cm-muted` | `#A8B5BD` | Sekundärtext, Metadaten, Quellen |
 | `--cm-accent` | `#2D94D9` | Navigation, Auswahl, Links, Fokus |
-| `--cm-danger` | `#E40611` | Löschen und destruktive Bestätigung |
+| `--cm-danger` | `#FF6770` | Löschen und destruktive Bestätigung |
 | `--cm-border` | `#344450` | Kartenkonturen, Trenner |
+| `--cm-on-accent` | `#11161A` | Text auf Accent-Flächen |
+
+Accent bleibt unverändert. Weißer normaler Text auf Dark Accent ist kein
+ausreichender Kontrastersatz für `--cm-on-accent`. Im Checkout verwendet das
+Light Theme bereits folgende Palette (keine neue Palette dieses Auftrags):
+
+| Token | Light Mode |
+| --- | --- |
+| `--cm-bg` | `#F3F6F8` |
+| `--cm-surface` | `#FFFFFF` |
+| `--cm-surface-raised` | `#E7EEF3` |
+| `--cm-text` | `#172630` |
+| `--cm-muted` | `#536671` |
+| `--cm-accent` | `#076BAB` |
+| `--cm-danger` | `#BD0610` |
+| `--cm-border` | `#BECBD4` |
+| `--cm-on-accent` | `#FFFFFF` |
+
+Diese bestehenden semantischen Light-Werte bei Erweiterungen wiederverwenden;
+keine unabhängige Builder-Palette erfinden. Die Tokens sind derzeit auf
+Bibliothek/Bogen begrenzt; ihre konsistente Anwendung im Builder ist noch offen,
+siehe [Builder-Aufgabe](tasks/MOBILE_BUILDER.md). Der Farbabgleich belegt keine
+vollständige Kontrast-/Geräteabnahme.
 
 **Farbsemantik:** Blau kennzeichnet Navigation, Auswahl und Informationsaktionen. Rot wird für Gefahren, Löschen und sparsame Akzente genutzt – nicht pauschal als Primärbuttonfarbe. Erfolg und Warnungen benötigen unterscheidbare, ausreichend kontrastreiche Zustände. Ausgewählte oder deaktivierte Elemente dürfen nicht ausschließlich über Farbe erkennbar sein.
 
