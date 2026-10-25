@@ -1,273 +1,160 @@
-# CharacterManager unter Windows 11 entwickeln
+# Einrichtung und lokaler Start
 
-**PR06 UI-Architektur:** Creator, Charakterbogen, Navigation, Bibliotheksdarstellung
-und Regeltexte liegen in `js/ui/`. `app.js` verbindet sie mit State und Rules.
-[Schnittstellen und Vorbereitung fuer PR07](docs/UI_ARCHITECTURE.md).
-Zusatztest ohne Regeldaten: `node tools/validate_ui_components.mjs`.
+Maßgebliche Anleitung für den aktuellen Checkout. Produktumfang:
+[PROJECT.md](docs/PROJECT.md); Prüfungen: [TESTING.md](docs/TESTING.md);
+Arbeitsablauf und Review: [WORKFLOW.md](docs/WORKFLOW.md).
 
-**PR07 Library und Sheet:** Responsive Abschnitte, SectionSelector und mobile
-Navigation sind implementiert. Der Builder folgt erst in PR08.
-[Bedienung, Breakpoints und Browserpruefung](docs/MOBILE_UI.md).
-Schnelltest: `node tools/validate_mobile_ui.mjs`; die optionale Playwright-
-Entwicklungsumgebung liegt getrennt unter `tools/browser/` (Node 20+).
+## Voraussetzungen
 
-**Phase 4:** Revisionssicheres Loeschen mit privatem Papierkorb, automatische
-Dateibackups, globale Theme-Auswahl und gemeinsame JSON-Validierung sind
-implementiert. [Bedienung, Testbefehle und Grenzen](docs/PHASE4.md),
-[Wiederherstellung](docs/STORAGE_RECOVERY.md), [Theme](docs/THEME.md).
+| Zweck | Voraussetzung |
+| --- | --- |
+| Offline-Oberfläche | Aktueller Browser, lokal erzeugte Regeldaten; kein npm-/pip-Setup |
+| Lokale Datengeneratoren | Python 3, Standardbibliothek; autorisierte lokale 5etools-Quelle |
+| Optionale Serverbibliothek | Python 3.10+ und Pakete aus [server/requirements.txt](server/requirements.txt); CI verwendet Python 3.12 |
+| Entwicklungstests | Node/Python je Prüfart, siehe [TESTING.md](docs/TESTING.md#voraussetzungen) |
+| Lint | Separate Entwicklungsabhängigkeiten, siehe [LINTING.md](docs/LINTING.md) |
 
-**Phase 3 – Frontend:** Die Startseite bietet jetzt die gemeinsame
-Charakterbibliothek; im Creator stehen **Save to Server** und **Save as New on
-Server** bereit. Mit dem Flask-Server starten, damit die API verfuegbar ist.
-[Startbefehle, Bedienung, manuelle Abnahme und Tests](docs/SERVER_LIBRARY.md).
+Git und ein Editor nach Wahl genügen für Quelltextarbeit. Für den normalen
+Anwendungsbetrieb ist kein OpenAI-API-Schlüssel erforderlich.
 
-**Erweiterung MVP 1, Phase A:** Fuer die optionale lokale Charakterbibliothek
-gibt es jetzt ein Flask-Backend. Windows-Startbefehle, Speicherpfad, API und
-Tests stehen in [server/README.md](server/README.md). Der folgende bisherige
-statische Entwicklungsstart bleibt ohne pip-Abhaengigkeiten nutzbar.
+## Einmaliges Setup
 
-CharacterManager basiert auf [TaylorMouse/dnd_character_creator](https://github.com/TaylorMouse/dnd_character_creator).
-Die ursprüngliche Anwendung und die MIT-Lizenz bleiben unverändert. Diese
-ursprüngliche Vorbereitung ergänzte nur Dokumentation und Ignore-Regeln.
-
-## 1. Software installieren
-
-- [Git for Windows](https://git-scm.com/downloads/win).
-- [Python 3](https://www.python.org/downloads/windows/) mit Python-Launcher (`py`).
-  Eine aktuelle Python-3-Version verwenden; die Generatoren nutzen die Standardbibliothek.
-- [Visual Studio Code](https://code.visualstudio.com/).
-- Offizielle **Codex-Erweiterung von OpenAI** in VS Code installieren und mit
-  dem ChatGPT-Konto anmelden. Siehe [offizielle Einrichtung](https://developers.openai.com/codex/ide/).
-  Alternativ das lokale Repository in der Codex-Desktop-Anwendung öffnen.
-- Edge oder Chrome. Node.js 18+ wird fuer die plattformunabhaengigen
-  Entwicklungstests benoetigt (keine npm-Pakete). Windows Script Host ist nur
-  fuer den direkten Vergleich mit der bisherigen Windows-Regelsuite erforderlich.
-
-PowerShell neu öffnen und prüfen:
+PowerShell, falls noch kein Checkout existiert:
 
 ```powershell
-git --version
-py -3 --version
-```
-
-Für den reinen Offline-Betrieb sind weder Node.js, npm noch ein OpenAI-API-Schlüssel
-erforderlich. Die optionale Serverbibliothek benötigt Flask. Node.js wird fuer
-Entwicklungstests und Lint gebraucht; die datenfreien Node-Tests benoetigen
-weiterhin keine npm-Pakete. Die optionalen Linter benoetigen Node 22.13+ (22.x)
-oder 24+ und eigene Entwicklungsabhaengigkeiten.
-Codex ist das Entwicklungswerkzeug.
-
-## 2. Repository klonen und in VS Code öffnen
-
-Voraussetzung: Zugriff auf den GitHub-Fork `TeiChi85/dnd_Character_Manager`.
-
-```powershell
-New-Item -ItemType Directory -Force "$HOME\source" | Out-Null
-Set-Location "$HOME\source"
 git clone https://github.com/TeiChi85/dnd_Character_Manager.git
 Set-Location dnd_Character_Manager
-git remote add upstream https://github.com/TaylorMouse/dnd_character_creator.git
-code .
 ```
 
-Falls `code` nicht im PATH liegt: VS Code starten und **Datei → Ordner öffnen**.
-Vor späteren Änderungen einen Arbeitsbranch anlegen, z. B. `git switch -c feature/meine-aenderung`.
+Vor Änderungen Git-Status prüfen und nach Auftrag auf einem Arbeitsbranch
+arbeiten; bestehende Änderungen nicht überschreiben. Upstream-Ursprung:
+[TaylorMouse/dnd_character_creator](https://github.com/TaylorMouse/dnd_character_creator).
 
-## 3. Fehlende Regeldaten lokal bereitstellen
+Nur für Flask eine Umgebung einrichten; eine vorhandene `.venv` weiterverwenden:
 
-Der Checkout enthält absichtlich keine generierten D&D-Regeldaten.
-Ohne diese startet die Oberfläche mit einem Hinweis; Charaktererstellung und
-Regressionstests sind erst nach der Generierung vollständig nutzbar.
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r server/requirements.txt
+```
 
-Benötigt wird ein eigener, zur lokalen Nutzung berechtigter Datensatz im
-**5etools-JSON-Format**, kein PHB-PDF und keine Charakter-JSON. Der Upstream
-nennt 5etools **v2.33.1** als zuletzt validierte Version. Ein reiner SRD-Text
-ist kein direkter Ersatz für dieses Format. Die Code-MIT-Lizenz erteilt keine
-Rechte zur Weiterverbreitung der Regelinhalte. Daten selbst aus einer Quelle
-bereitstellen, für die entsprechende Nutzungsrechte vorliegen; diese Anleitung
-lädt keine Bücher oder Regeldaten herunter.
+Falls der Python-Launcher keine Installation findet, den vollständigen Pfad
+zum installierten Python verwenden. Eine Aktivierung oder Änderung der
+PowerShell-Ausführungsrichtlinie ist nicht nötig. Unter Linux/macOS entsprechen
+`python3 -m venv .venv` und `.venv/bin/python` diesen Befehlen.
 
-Den vollständigen Datensatz **außerhalb** des Git-Ordners ablegen, zum Beispiel
-`C:\DND-local\5etools-v2.33.1\data`. Erwartet werden unter anderem:
+## Lokale Regeldaten bereitstellen
 
-- `class\class-*.json`, `spells\spells-*.json`, `bestiary\bestiary-*.json`
-- `backgrounds.json`, `races.json`, `feats.json`, `optionalfeatures.json`
-- `items.json`, `items-base.json`, `magicvariants.json`, `languages.json`
-- `generated\gendata-spell-source-lookup.json`
+Der Checkout enthält keine generierten D&D-Regeldaten. Ohne sie zeigt die App
+einen Hinweis; datenabhängige Erstellung und Referenzen sind nicht vollständig
+nutzbar. Es wird eine eigene, lokal zur Nutzung berechtigte Quelle im
+**5etools-JSON-Format** benötigt, kein PHB-PDF oder Charakterexport. Diese Anleitung
+lädt keine Daten herunter. Die Upstream-Referenz war v2.33.1; andere Versionen
+sind damit nicht automatisch kompatibel.
 
-Das ist eine Orientierung, kein vollständiges Importschema. Den kompletten
-kompatiblen `data`-Ordner verwenden, nicht einzelne Dateien zusammenstellen.
-Wenn vorhanden, `package.json` neben `data` belassen: daraus wird die Version gelesen.
+Den vollständigen Datensatz außerhalb des Repositorys ablegen, beispielsweise
+`C:\DND-local\5etools-v2.33.1\data`. Erwartet werden u.a. `class/class-*.json`,
+`spells/spells-*.json`, `bestiary/bestiary-*.json`, `backgrounds.json`, `races.json`,
+`feats.json`, `optionalfeatures.json`, `items.json`, `items-base.json`,
+`magicvariants.json`, `languages.json` und
+`generated/gendata-spell-source-lookup.json`. Das ist keine vollständige Dateiliste;
+keinen Teildatensatz auf Verdacht zusammenstellen. Falls vorhanden, das
+Quell-`package.json` neben `data` belassen: daraus liest der Generator die Version.
 
-Im Repository-Stamm ausführen (Pfad an den tatsächlichen Speicherort anpassen):
+Im Repository-Stamm, mit dem tatsächlichen eigenen Pfad:
 
 ```powershell
 $env:PYTHONUTF8 = "1"
 $env:CC_5ETOOLS_DATA = "C:\DND-local\5etools-v2.33.1\data"
 Test-Path "$env:CC_5ETOOLS_DATA\generated\gendata-spell-source-lookup.json"
-py -3 tools\datasrc.py
-py -3 tools\regen_all.py "$env:CC_5ETOOLS_DATA"
+py -3 tools/datasrc.py
+py -3 tools/regen_all.py "$env:CC_5ETOOLS_DATA"
 if ($LASTEXITCODE -ne 0) { throw "Datengenerierung fehlgeschlagen: Ausgabe prüfen." }
 ```
 
-`Test-Path` muss `True` ergeben; `regen_all.py` soll mit **FAILED: none** und
-Exitcode 0 enden. Es erzeugt `resources/data-*.js`, `resources/features/*.js`
-und Kreaturdateien unter `resources/creatures/`. Diese bleiben lokal ignoriert.
-Bei einer Fehlermeldung Dateipfad und Datensatzversion prüfen, nicht die
-Generatoren auf Verdacht ändern. Teilweise erzeugte Dateien bedeuten keinen
-erfolgreichen Import. Nach einem Datenversionswechsel können alte generierte
-Dateien übrig bleiben; vor einer erneuten Generierung die betreffenden lokalen
-Ausgaben nach Sicherung gezielt entfernen, nicht pauschal alle Git-Dateien bereinigen.
+`Test-Path` muss `True` und die Generierung `FAILED: none` mit Exitcode 0 liefern.
+Die Ausgaben unter `resources/data-*.js`, `resources/features/` und
+`resources/creatures/` bleiben ignoriert und lokal. Teilweise erzeugte Dateien
+belegen keinen Erfolg. Bei Fehlern Quelle/Pfad/Version prüfen, nicht auf Verdacht
+Generatoren ändern. Nach Quellenwechsel können alte Ausgaben übrig bleiben;
+nur gezielt und nach Sicherung bereinigen, nie pauschal Git-Dateien löschen.
 
-Pfadpriorität: Kommandozeilenargument vor `CC_5ETOOLS_DATA` vor dem alten,
-fest eingebauten `E:`-Pfad. Daher immer Argument oder Umgebungsvariable setzen.
-Die obigen Umgebungsvariablen gelten nur im aktuellen PowerShell-Fenster.
-Optionales Homebrew ebenfalls außerhalb ablegen; `CC_HOMEBREW` akzeptiert
-Dateien oder Ordner, durch Semikolon getrennt. Die Loader suchen zusätzlich
-in `homebrew/` und neben bzw. oberhalb des Datenordners nach passenden JSON-Dateien.
+`tools/datasrc.py` verwendet Argument vor `CC_5ETOOLS_DATA` vor einem alten
+festen `E:`-Fallback. Immer expliziten Pfad oder Umgebungsvariable setzen.
+Homebrew ebenfalls außerhalb halten: `CC_HOMEBREW` nimmt Dateien/Ordner mit
+Semikolontrennung an. Der Loader berücksichtigt zusätzlich konfigurierte
+Legacy-Pfade und `homebrew`-/Nachbarordner der Quelle; Bucherkennung über
+`_meta.sources`. Suchlogik: [tools/homebrew.py](tools/homebrew.py).
+Umgebungsvariablen gelten nur im jeweiligen Terminal; diese Befehle lesen Quellen.
 
-## 4. Entwicklungsserver starten und Browser öffnen
+## Normaler Start
 
-Fuer die gemeinsame Bibliothek den optionalen Flask-Server im Repository-Stamm
-starten (vorhandene `.venv` weiterverwenden):
+Für die gemeinsame Bibliothek im Repository-Stamm:
 
 ```powershell
-# Nur bei neuer Einrichtung:
-py -3 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r server\requirements.txt
-# Normaler Start:
 .\.venv\Scripts\python.exe -m server.app
 ```
 
-Flask liefert Anwendung und API unter <http://127.0.0.1:8000/> aus,
-ohne Debugger/Reload und nur auf Loopback. Private JSON-Dateien, Backups und
-Papierkorb liegen standardmaessig unter `%USERPROFILE%\.character-manager\characters`,
-konfigurierbar ueber `CC_CHARACTER_STORAGE` ausserhalb des Repositorys.
-Details: [server/README.md](server/README.md). Keine Authentifizierung;
-keine Freigabe im Internet. Die Regeldaten muessen weiterhin lokal generiert sein.
+Anwendung und API: <http://127.0.0.1:8000/>. Ohne Debugger/Reload, nur Loopback.
+Standard-Privatspeicher: `%USERPROFILE%\.character-manager\characters`.
+Optional vor dem Start im selben Fenster setzen:
 
-Alternativ fuer die statische Anwendung ohne gemeinsame Bibliothek:
+```powershell
+$env:CC_CHARACTER_STORAGE = "C:\DND-local\character-library"
+```
 
-Im Repository-Stamm:
+Der Speicher muss außerhalb des Repositorys liegen; der Server prüft auch
+aufgelöste Pfade. Nie über einen anderen Dateiserver freigeben.
+[API](server/README.md), [Bedienung](docs/SERVER_LIBRARY.md),
+[Aufbewahrung und Wiederherstellung](docs/STORAGE_RECOVERY.md).
+Keine Authentifizierung und keine geprüfte LAN-/Internetbereitstellung.
+
+Für die statische Anwendung ohne Speicher-API alternativ:
 
 ```powershell
 py -3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-Im Browser [http://127.0.0.1:8000/index.html](http://127.0.0.1:8000/index.html)
-öffnen. Mit `Strg+C` den Server beenden. Falls Port 8000 belegt ist, z. B.
-8001 verwenden und die URL anpassen. Der Server ist nur ein lokaler Dateiserver.
-Es gibt keinen Build-Schritt; nach Änderungen Browser neu laden, bei alten
-Dateien `Strg+F5` verwenden. Alternativ funktioniert direktes Öffnen von `index.html`.
+Dann <http://127.0.0.1:8000/index.html> öffnen. Direktes Öffnen von `index.html`
+ist ebenfalls möglich. Beide Server mit `Strg+C` beenden; bei Portkonflikten
+keinen fremden Prozess beenden oder versehentlich gegen ihn testen. Nach
+Codewechsel Browser neu laden, gegebenenfalls `Strg+F5`; Flask bei Bedarf neu starten.
+Es gibt keinen produktiven Build-Schritt.
 
-## 5. Vorhandene Tests ausführen
+## Optionale PDF-Ressourcen
 
-Zusaetzliche schnelle Fehlerpruefung fuer eigenen JavaScript-, Python- und
-CSS-Code: [Einrichtung, Befehle, Umfang und Grenzen](docs/LINTING.md).
-Nach einmaliger Installation: `npm.cmd run --silent lint`, danach bei
-Konfigurationsaenderungen `node tools/validate_lint.mjs`. Derselbe Lint-Einstieg
-laeuft im separaten CI-Job. Lint ersetzt die folgenden Tests nicht.
+Die sichtbaren Print/PDF-Aktionen rufen `printSheet()` auf: eine erzeugte
+HTML-Druckansicht, die über den Browser auch als PDF gespeichert werden kann.
+Sie benötigt keine externe PDF-Vorlage. Der ältere Formularpfad `exportPdf()`
+ist im Code erhalten, aktuell aber nicht an diese Buttons gebunden.
+Er erwartet zusätzlich `window.PDFLib` und entweder
+`CC_SHEET_TEMPLATE`/`CC_SHEET_FIELDS` oder die Fallback-Vorlage `CC_PDF_TEMPLATE`.
+Die vorhandenen HTML-Script-Includes und tatsächlichen Payloads müssen dazu passen;
+das Bereitstellen der Dateien allein verdrahtet keinen neuen UI-Exportweg.
 
-Backend ohne D&D-Regeldaten, mit isolierten temporaeren Speichern:
-
-```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s server -t . -v
-```
-
-Frontend und portabler Harness-Selbsttest mit Node.js 18+ (keine npm-Pakete,
-synthetische Daten/simulierter DOM):
+Für die WotC-Fallback-Vorlage die MIT-Bibliothek `pdf-lib` als
+`resources/pdf-lib.min.js` lokal bereitstellen und eine eigene berechtigte
+form-fillable PDF einbetten:
 
 ```powershell
-node tools\validate_server_frontend.mjs
-node tools\validate_class_loading.mjs
-node tools\validate_theme.mjs
-node tools\validate_rules_core.mjs
-node tools\validate_character_state.mjs
-node tools\validate_ui_components.mjs
-node tools\validate_mobile_ui.mjs
-node tools\validate_rules_engine.mjs
-node tools\validate_rules_adapters.mjs
-node tools\validate_rules.mjs --self-test
+py -3 tools/gen_pdf_template.py "C:\DND-local\eigene-form-fillable-vorlage.pdf"
 ```
 
-Die Testarten und Grenzen sind in [docs/TESTING.md](docs/TESTING.md) beschrieben.
-Die Klassenlade-Suite prueft den echten Event-Handler und Loader mit gezielt
-vertauschten Script-Antworten; sie fuehrt beim Import auch die Frontend-Suite aus.
-Wenn beide Befehle ausgefuehrt werden, laeuft die Frontend-Suite deshalb zweimal.
-`validate_rules.mjs --self-test` prueft ausschliesslich den Node-Adapter mit
-synthetischen Testdaten, die klare Fehlermeldung bei fehlenden Regeldaten und
-einen absichtlich fehlschlagenden isolierten Testprozess. Das ist kein Test der
-D&D-Regeln.
-Der optionale Live-Test `node tools\validate_live_library.mjs` darf nur gegen
-einen eigenen Flask-Testserver auf `127.0.0.1:8001` mit isoliertem temporaerem
-`CC_CHARACTER_STORAGE` laufen, niemals gegen echte Charaktere. Er erzeugt
-synthetische Charaktere und hinterlaesst deren Recovery-Archive im Test-Speicher.
-Eine konkrete isolierte Start-/Stop-Anleitung steht in
-[docs/TEST_BASELINE.md](docs/TEST_BASELINE.md).
+Das erzeugte `resources/pdf-template.js`, die Ausgangs-PDF und alternative
+PowerPoint-/PDF-Payloads bleiben lokal. Die Generatoren der alternativen Vorlage
+sind kein Teil des Entwicklungsstarts und werden nicht automatisch ausgeführt.
+Fehlende PDF-Ressourcen sind kein fehlgeschlagener normaler App-Start.
 
-Nach erfolgreicher lokaler Datengenerierung die vollstaendige Regelsuite mit Node
-ausfuehren:
+## Prüfen und private Dateien schützen
 
-```powershell
-node tools\validate_rules.mjs
-if ($LASTEXITCODE -ne 0) { throw "Regel-Regressionstest fehlgeschlagen: Ausgabe prüfen." }
-```
+Prüfauswahl, Befehle und Grenzen nur in [TESTING.md](docs/TESTING.md),
+Linterinstallation in [LINTING.md](docs/LINTING.md) pflegen.
+Keine vollständige Regelsuite ohne autorisierte lokale Quelle behaupten.
 
-Der portable Runner nutzt dieselben Assertions in `tools/validate.js`; ein zweiter
-Satz fachlicher Assertions wird nicht gepflegt. Er ersetzt die WSH-Zugriffe auf
-Dateien und ActiveX-Objekte durch einen kleinen Adapter. Der bisherige direkte
-Windows-Vergleich bleibt verfuegbar:
-
-```powershell
-cscript.exe //nologo tools\validate.js
-if ($LASTEXITCODE -ne 0) { throw "Windows-Regressionsvergleich fehlgeschlagen: Ausgabe prüfen." }
-```
-
-Die WSH-Datei nutzt weiterhin ActiveX-/Dateisystemobjekte und einen simulierten
-DOM; der Node-Adapter macht den Runner plattformunabhaengig. Beide vollstaendigen
-Regellaeufe benoetigen lokal generierte Ressourcen und brechen bei fehlenden
-Daten mit Fehler ab. GitHub Actions fuehrt nur den datenfreien Selbsttest aus,
-nicht die vollstaendige Regelsuite. Die tatsaechlich ausgefuehrten Backend-,
-Frontend- und Windows-Laeufe stehen in
-[server/TEST_RESULTS.md](server/TEST_RESULTS.md).
-Die fuer PR 01 neu ausgefuehrten Vorher-/Nachher-Laeufe, Exitcodes und
-Einschraenkungen stehen getrennt in [docs/TEST_BASELINE.md](docs/TEST_BASELINE.md).
-
-Im Browser zusätzlich einen Charakter erstellen, als JSON außerhalb des
-Repos speichern, wieder laden und die Referenzseiten prüfen. PDF-Export ist
-optional: `resources/pdf-lib.min.js` und `resources/pdf-template.js` fehlen
-ebenfalls absichtlich. Die unveränderte README beschreibt die Bereitstellung;
-eine eigene PDF-Vorlage lässt sich mit `tools/gen_pdf_template.py` einbetten.
-Beide Dateien und die Ausgangs-PDF bleiben lokal.
-
-## 6. Mit Codex arbeiten und Änderungen prüfen
-
-Codex im geöffneten Projekt starten und zunächst `AGENTS.md` sowie diese Datei
-lesen lassen. Ein geeigneter erster Auftrag: „Prüfe die lokale Einrichtung,
-starte die bestehenden Tests und berichte Einschränkungen. Ändere noch keine Funktionen.“
-Für Cloud-Arbeit muss der Fork zusätzlich für die GitHub-Anbindung von Codex
-freigegeben und als Repository gewählt werden. Lokale ignorierte Daten werden
-nicht automatisch mit übertragen; der vollständige Windows-Testlauf bleibt lokal.
-
-Die `.gitignore` schützt generierte Ressourcen, JSON/PDF-Dateien, lokale
-Arbeitsordner, IDE-Konfigurationen und typische Zugangsdaten. Neue legitime
-JSON-Quelldateien benötigen eine gezielte Ignore-Ausnahme nach Inhaltsprüfung.
-Eigene Charaktere/Porträts und Datensätze grundsätzlich außerhalb speichern.
-Keine Ignore-Datei erkennt jeden privaten Inhalt oder verhindert `git add -f`.
-Sie schützt auch nicht vor Zugriff durch Codex selbst oder vor anderen Upload-Werkzeugen.
-
-Vor jedem Commit prüfen:
-
-```powershell
-git status --short --ignored
-git diff
-git diff --cached --name-only
-git diff --cached
-git ls-files "resources/data-*.js" "resources/features/*" "resources/creatures/*" "*.json" "*.pdf"
-```
-
-Der letzte Befehl soll im vorbereiteten Stand nichts ausgeben. Ignore-Regeln
-wirken nicht rückwirkend auf bereits getrackte Dateien. Keine Regeldaten mit
-`git add -f` erzwingen. Die Upstream-Skripte `install_hooks.py`, `package.py`,
-`upload_dropbox.py` und `sync_public.py` sind für diesen Start nicht nötig
-und werden nicht automatisch eingerichtet oder ausgeführt.
+`.gitignore` ist eine Schutzschicht, keine Zugriffssperre für Agenten. Neue
+JSON-Quellen und Ressourcen gezielt auf private/geschützte Inhalte prüfen.
+Root- und Browser-Paketmanifeste/Lockfiles sind legitime enge JSON-Ausnahmen;
+eine pauschale Forderung nach null getrackten JSON-Dateien ist falsch.
+Vor einem erlaubten Commit Dateiliste und Staging-Inhalte prüfen, insbesondere
+ungewollte `resources/data-*`, Feature-/Kreaturdateien, Charaktere, PDFs und Secrets.
+Keine Ignore-Regel mit `git add -f` umgehen. Packaging-, Hook-, Dropbox- und
+Public-Sync-Hilfen nicht automatisch starten.

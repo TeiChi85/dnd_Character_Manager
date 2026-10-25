@@ -4,6 +4,12 @@
 **Geltungsbereich:** Responsive Weboberfläche für Android Chrome, iPhone Safari und Desktop-Browser.\
 **Designziel:** Eine eigenständige, an der Informationshierarchie und visuellen Dichte von D&D Beyond orientierte Charakterverwaltung für D&D 2014 und 2024.
 
+**Soll und Ist:** Diese Datei bleibt die maßgebliche gewünschte Gestaltung.
+Der bestätigte Implementierungsumfang und begründete Abweichungen stehen in
+[MOBILE_UI.md](MOBILE_UI.md#umfang-und-abgrenzung); insbesondere ist das mobile
+Wizard-Design noch nicht vollständig umgesetzt. Die folgenden Anforderungen
+werden durch diese Einordnung nicht geändert oder abgeschwächt.
+
 ## 1. Gestaltungsprinzipien
 
 - **Mobile first, Desktop weiterhin vollwertig:** Auf Smartphones sind Bibliothek, Charaktererstellung, Charakterbogen und vorhandene Spielaktionen vollständig erreichbar. Die Desktop-Oberfläche bleibt funktionsgleich und weitgehend in ihrer bisherigen Anordnung erhalten.

@@ -1,3 +1,10 @@
+> **Historischer Stand – archiviert.** Der folgende Inhalt bleibt als damaliger
+> Plan bzw. Prüfnachweis erhalten, ist keine aktuelle Betriebsanleitung und
+> keine pauschale Aussage zum heutigen Teststatus. Überholte Serializer-,
+> Scope- und Phasenaussagen sind historisch zu lesen. Aktuell maßgeblich:
+> [Einrichtung](../../DEVELOPMENT.md), [Prüfungen](../TESTING.md),
+> [State-Vertrag](../CHARACTER_STATE.md), [Architektur](../ARCHITECTURE.md).
+
 # PR 01: Regression Baseline & Stabilization
 
 Neu ausgefuehrte Laeufe am **23.10.2026**, Windows 11, Python **3.15.1** aus der
@@ -227,7 +234,7 @@ geprueft. Eine absichtlich falsche Engine-AC fuehrt im isolierten Kindprozess
 zum erwarteten Exitcode 1; der gesamte Adaptertest endet mit Exitcode 0.
 
 Bekannte unterschiedliche Zauberbonus-Pfade und bestehende Sonderfaelle sind
-in [RULES_ARCHITECTURE.md](RULES_ARCHITECTURE.md) dokumentiert und bewusst beibehalten.
+in [RULES_ARCHITECTURE.md](../RULES_ARCHITECTURE.md) dokumentiert und bewusst beibehalten.
 Keine stillschweigende Regelkorrektur, keine Aenderung von SAVE_KEYS,
 JSON-Format, Backend, Lizenz, Weapon Mastery oder Extra Attack.
 
@@ -322,7 +329,7 @@ Browser-/Touch-/Dateipicker-/PDF-Abnahme und kein erneuter Live-Library-Test.
 Der vorhandene Benutzerserver und dessen Charakterbibliothek wurden nicht fuer
 Testschreibzugriffe verwendet. `Microsoft/` bleibt ausserhalb der Commits.
 Uebergangsadapter, DOM-Host-Vertrag und PR07-Voraussetzungen stehen in
-[UI_ARCHITECTURE.md](UI_ARCHITECTURE.md).
+[UI_ARCHITECTURE.md](../UI_ARCHITECTURE.md).
 
 ## PR07: Mobile Library und Character Sheet
 
@@ -378,4 +385,4 @@ Python-Tests abgedeckt. Kein erneuter Live-Library-Lauf gegen Flask.
 Homebrew wurde mangels lokalem Buch in der vollstaendigen Suite explizit
 uebersprungen. Der Nutzerserver und seine Charakterdateien wurden nicht fuer
 Testschreibzugriffe verwendet. `Microsoft/` bleibt ausserhalb der Commits.
-Anleitung, Scope PR08/PR09 und Einschraenkungen: [MOBILE_UI.md](MOBILE_UI.md).
+Anleitung, Scope PR08/PR09 und Einschraenkungen: [MOBILE_UI.md](../MOBILE_UI.md).

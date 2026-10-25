@@ -1,9 +1,16 @@
+> **Historischer Stand – archiviert.** Der folgende Inhalt bleibt als damaliger
+> Plan bzw. Prüfnachweis erhalten, ist keine aktuelle Betriebsanleitung und
+> keine pauschale Aussage zum heutigen Teststatus. Überholte Serializer-,
+> Scope- und Phasenaussagen sind historisch zu lesen. Aktuell maßgeblich:
+> [Einrichtung](../../DEVELOPMENT.md), [Prüfungen](../TESTING.md),
+> [State-Vertrag](../CHARACTER_STATE.md), [Architektur](../ARCHITECTURE.md).
+
 # Linter-Einfuehrung: ausgefuehrte Pruefungen
 
 Datum: **25.10.2026**, Windows, Branch `chore/slim-lint`, Basis `88d49aa`
 (aktuelles `origin/main` nach Fetch). Node **24.22.1**, npm **11.19.1**,
 Python **3.15.1** aus der vorhandenen `.venv`.
-Einrichtung, Versionen, Regelumfang und Ausschluesse: [LINTING.md](LINTING.md).
+Einrichtung, Versionen, Regelumfang und Ausschluesse: [LINTING.md](../LINTING.md).
 
 ## Ausgangspruefung und Wiederholung
 
@@ -82,6 +89,6 @@ Die manuelle Geraete-, Screenreader-, Dateipicker- und PDF-Abnahme sowie der
 optionale Live-Library-Test wurden hier nicht ausgefuehrt. Keine Testschreibzugriffe
 auf den Nutzerserver oder persoenliche Charakterdateien. Ungetracktes `Microsoft/`
 bleibt unberuehrt; keine fremden Dateien werden committed.
-Weitere Grenzen der statischen Pruefung stehen in [LINTING.md](LINTING.md).
+Weitere Grenzen der statischen Pruefung stehen in [LINTING.md](../LINTING.md).
 Der vollstaendige Quelldiff und die Lockfile-Eintraege wurden geprueft;
 `git diff --cached --check` meldete keine Whitespace-Fehler.

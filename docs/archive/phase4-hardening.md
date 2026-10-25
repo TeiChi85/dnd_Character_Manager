@@ -1,3 +1,10 @@
+> **Historischer Stand – archiviert.** Der folgende Inhalt bleibt als damaliger
+> Plan bzw. Prüfnachweis erhalten, ist keine aktuelle Betriebsanleitung und
+> keine pauschale Aussage zum heutigen Teststatus. Überholte Serializer-,
+> Scope- und Phasenaussagen sind historisch zu lesen. Aktuell maßgeblich:
+> [Einrichtung](../../DEVELOPMENT.md), [Prüfungen](../TESTING.md),
+> [State-Vertrag](../CHARACTER_STATE.md), [Architektur](../ARCHITECTURE.md).
+
 # Phase 4 – Bedienung, Sicherheit und Zuverlaessigkeit
 
 Geaenderte Dateien dieser Phase:
@@ -45,7 +52,7 @@ abgeschlossen haben. Es gibt keine automatischen Schreibwiederholungen.
 Bibliothek, jedem Creator-Schritt, Bogen und den sechs Referenzseiten pruefen.
 Seite neu laden und Browser neu starten. Einen alten Charakter mit einem
 entgegengesetzten `sheet.dark` importieren: die persoenliche Darstellung muss
-erhalten bleiben. Weitere Details: [THEME.md](THEME.md).
+erhalten bleiben. Weitere Details: [THEME.md](../UI_ARCHITECTURE.md#theme).
 
 **Lokale Dateien:** Einen Charakter lokal exportieren und wieder importieren,
 auch bei gestopptem Flask-Server. Daten muessen erhalten bleiben; Server-ID,
@@ -103,7 +110,7 @@ Platzhalter ersetzen; keine Pfade als Dateiname angeben. Der Befehl validiert
 das Archiv und dessen Identitaet, erhaelt die urspruengliche ID und setzt eine
 hoehere Revision. Ein vorhandener aktiver Charakter wird nicht ueberschrieben.
 Vollstaendige Anleitung, Aufbewahrungsregeln und Behandlung beschaedigter Dateien:
-[STORAGE_RECOVERY.md](STORAGE_RECOVERY.md).
+[STORAGE_RECOVERY.md](../STORAGE_RECOVERY.md).
 
 ## Tests
 
@@ -120,7 +127,7 @@ dann `node tools\validate_live_library.mjs` ausfuehren. Dieser Test verwendet
 die echten HTTP-Endpunkte und verschiebt nur die von ihm selbst angelegten IDs
 in den Papierkorb. Er hinterlaesst deren Archive im Test-Speicher. DOM und
 Charakter-Rendering sind dabei simuliert. Ergebnisse und nicht ausgefuehrte
-Pruefungen stehen in [server/TEST_RESULTS.md](../server/TEST_RESULTS.md).
+Pruefungen stehen in [server/TEST_RESULTS.md](server-test-results-phase-a-4.md).
 
 ## Grenzen und Raspberry Pi
 

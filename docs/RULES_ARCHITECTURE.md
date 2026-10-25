@@ -1,130 +1,80 @@
-# Rules-Architektur: Core, Engine und App-Adapter
+# Rules: Core, Engine und Controller-Adapter
 
-Vor PR03 lagen Basis- und komplexe Berechnungen mit UI und globalem State in
-`app.js`. PR03 hat die numerischen Grundbausteine nach `rules-core.js` verlegt.
-PR04 ergaenzt die zustandsfreie `rules-engine.js`: Sie kombiniert diese
-Grundbausteine mit explizit uebergebenen Ruestungs-, Angriffs-, Item- und
-Effektmechaniken. `app.js` ermittelt die passenden Eingaben, interpretiert
-Regeldaten und erzeugt die unveraenderte Darstellung und Exportstrukturen.
+## Verantwortlichkeiten
 
-Der Core verantwortet Attributsmodifikatoren, Proficiency, HP, Skills, Saves,
-passive Werte und maximale Zaubergrade. Die Engine verantwortet AC-Auswahl,
-Angriffs-/Schadensmathematik, Zauberangriff/SG sowie die Aggregation bereits
-ausgewaehlter Item- und Effektboni. Beide Module sind ohne App-State testbar.
-
-## Abhaengigkeitsanalyse vor der Extraktion
-
-| Kategorie | Funktionen und Verantwortung | Entscheidung |
+| Bereich | Verantwortung | Grenze |
 | --- | --- | --- |
-| Reine Berechnungen | `acInfo`: Kandidaten, Dex-Cap, Auswahl, Boni, Override; `abilitySaveDc` und `attackRows`: Angriffs-/SG-Mathematik; Waffenschaden, Attributswahl, Kampfstyles; `biggerDie`, `scaledDie`, Monk-Kriterien | In die Engine mit expliziten Eingaben |
-| Charakterabhaengige Aufbereitung | `resolveArmor`, `itemBonuses`: getragen/attuned, Basisvarianten; `spellInfo`, `dcAbility`, `martialArtsDie`; `fxActive`, `attackRows`: ausgeruestete Waffen und aktive Effekte | Adapter in app.js; numerische Aggregation in Engine |
-| Interpretation externer Regeldaten | `acFormulas`, `featureDcAbility`, `fxMods`, `fxAvailable`, `resolveWeapon`, `featureAttacks`, `attacksPerAction` | Textinterpretation, Auswahl, Slot-/Zauberlisten und Extra Attack bleiben in app.js |
-| UI/HTML | `acBreakdown`, `actionsCardHtml`, `itemEffectsHtml` und Angriffsnotizen/-beschreibungen | Bestehende Darstellung bleibt in app.js; Engine liefert Werte und strukturierte Teile |
-| Zustandsaenderungen | Equip-/Attunement-Handler, Effekt-Toggles, manuelle Sheet-Eingaben, Import/Export | Bleiben in app.js; Engine liest nur uebergebene Daten |
+| [rules-core.js](../js/core/rules-core.js) | Attributsmodifikatoren, Proficiency, HP, Skills/Saves, passive Werte, maximale Zaubergrade | Reine Grundberechnung |
+| [rules-engine.js](../js/core/rules-engine.js) | AC-Kandidaten, Angriffs-/Schadensmathematik, Zauberangriff/SG, Item-/Effektaggregation | Explizite normalisierte Mechaniken; nutzt Core |
+| [app.js](../js/app.js) | Referenzwahl, State-/Item-/Attunement-Filter, Prosa-/Tabelleninterpretation, Regeladapter und Exportaufbereitung | Liefert Engine-Eingaben; keine Interpretation beliebiger Daten durch die Engine |
+| [UI-Module](UI_ARCHITECTURE.md) | Darstellung strukturierter Werte und Beschreibungen über Context-Adapter | Kein direkter Core-/Engine-Aufruf |
 
-Aufrufer: `computeAC`/`acBreakdown` verwenden `acInfo`; Sheet/Export verwenden
-diese Adapter und `attackRows`. `itemBonuses` versorgt Attribute, Proficiency,
-Skills, Saves, AC, Tempo und Krit-Schwelle. `fxTotals` versorgt AC, Tempo,
-Resistenzen und `fxDmgFor`; letzteres versorgt Angriffszeilen und bedingte Notizen.
-`spellInfo` ermittelt weiterhin Klassen-/Rollenattribute und Zauberanzahlen.
+Ladereihenfolge: Core vor Engine, beide vor Controller.
+Browser-Namespace der Engine: `window.CCRulesEngine`; Node: CommonJS derselben
+Datei. Core/Engine greifen weder auf DOM/API noch auf Character-State zu.
+Ergebnisse werden je Aufruf neu aufgebaut; Eingaben dürfen nicht mutiert werden.
+Regeleditionen `classic` (2014) und `one` (2024) explizit unterscheiden.
 
-## Bewusst erhaltene Unterschiede
+## Aufbereitung und Datenfluss
 
-`abilitySaveDc` addiert bisher `bonusSpellSaveDc`, waehrend Zauberzeilen in
-`attackRows` weder diesen Bonus noch `bonusSpellAttack` addieren. Die Engine
-verwendet dieselbe Mathematik mit explizit unterschiedlichen Eingaben. Eine
-fachliche Korrektur der Zauberzeilen ist ein separater Auftrag.
+`resolveArmor`, `resolveWeapon`, `itemBonuses`, `fxAvailable`, `fxMods`,
+`acFormulas`, `featureDcAbility`, `spellInfo` und `attackRows` bleiben im Controller.
+Dort liegen ausgerüstete/attuned Auswahl, Basisvarianten, Klassen-/Rollenattribute,
+aktive Effekte und Featureinterpretation. Die Engine erhält daraus aufgelöste
+Records statt Inventar, Regelprosa oder den gesamten State.
 
-Monk-Unarmed-Schaden verwendet bisher aktive Strength-Melee-Boni auch bei
-hoeherer Dexterity. Dueling wird bedingt angezeigt, ohne die Zahl anderer
-gehaltener Waffen zu pruefen. Flat Natural Armor konkurriert mit getragener
-Ruestung; danach werden Schild und Defense addiert. Diese bestehenden
-Verhaltensweisen werden hier nicht korrigiert.
+`computeAC` und `acBreakdown` verwenden `acInfo`; Sheet und Export verwenden
+entsprechende Adapter und Angriffszeilen. Itemboni versorgen Attribute,
+Proficiency, Skills, Saves, AC, Tempo und Kritschwellen. `fxTotals` aggregiert
+gewählte Effekte; `fxDmgFor` begrenzt die Anwendung und ergänzt bedingte Notizen.
+UI-HTML wie `actionsCardHtml` wird über UI-Wrapper/Factories erzeugt;
+kleine eng gekoppelte HTML-Fragmente und Beschreibungen verbleiben im Controller.
 
-Ruestung/Schild werden aus dem generischen Item-AC-Summenpfad ausgeschlossen.
-Alternative AC-Formeln konkurrieren als ganze Kandidaten; bei Gleichstand
-gewinnt der erste Kandidat. Item-Attributsboni addieren sich, feste Werte bilden
-ein Maximum. Effekt-Resistenzen und Vorteilsattribute werden dedupliziert;
-numerische Boni verschiedener bereits ausgewaehlter Effekte addieren sich wie
-bisher. Auswahl/Deduplikation benannter Effektvarianten bleibt in `fxAvailable`.
+Slot-Tabellen, Zauberlisten/Preparation, Weapon Mastery und Extra Attack sind
+Controller-Aufbereitung, keine neue allgemeine Stacking- oder Regel-Engine.
+`fxMods` nutzt die Engine nur für den Vergleich von Würfel-Upgrades.
 
-## Schnittstellen
+## Engine-Schnittstellen
 
-`rules-core.js` wird vor `rules-engine.js` und dieses vor `app.js` geladen.
-Browser-Namespace: `window.CCRulesEngine`; Node: CommonJS-Export derselben Datei.
-Die Engine verwendet klassisches JavaScript, keine DOM-/API-Zugriffe und keinen
-Charakter-State. Alle Ergebnisse werden pro Aufruf neu aufgebaut.
+| Funktion | Wesentliche Eingaben | Ergebnis / Vertrag |
+| --- | --- | --- |
+| `calculateAC` | Aufgelöste Rüstung/Schild `{name,ac,armorKind,bonus}`, Dex-Mod, alternative Formeln `{base,flat,noShield,modifiers:[{label,value}]}`, Defense, benannte Boni, Other/Override | `{total,label,parts}`, bei Override auch `computed/overridden` |
+| `spellModifiers` | Bereits itembereinigte Proficiency, Attributsmodifikator, optionale `attackBonus/saveBonus` | `{attack,saveDC}`; Proficiency nicht doppelt addieren |
+| `weaponAttack` | Aufgelöste Waffe, Edition, Martial-Arts-Die, Str/Dex, Proficiency, Effektbonus, Kritschwellen, Style-Flags | Zahlen, Würfel, Attributswahl und anwendbare Style-Flags; Notizen bleiben beim Adapter |
+| `unarmedAttack`, `featureAttack` | Entsprechende explizite Kampfmechaniken | Deterministische Teilrechnungen |
+| `martialArtsDie`, `isMonkWeapon`, `biggerDie`, `scaledDie` | Ausrüstung/Edition bzw. Würfel/Level | Separat prüfbare Helfer |
+| `aggregateItems` | Bereits ausgewählte und nötigenfalls attuned Items als numerische Records; Rüstung/Schild mit generischem AC-Bonus 0 | Boni, Attributsfloors/-deltas, Tempooperationen und Quellen |
+| `abilityWithItems` | Attributswert und aggregierter Bonus | Delta anwenden, danach maximalen Floor |
+| `aggregateEffects` | Bereits ausgewählte aktive Effekte, `blocked`, explizite `abilityScores` | Aggregierte Werte und Quellen |
+| `effectDamage` | Angriffsart und flacher Effektbonus | Aktueller Pfad begrenzt diesen Bonus auf Strength-Melee |
 
-- `calculateAC`: aufgeloeste Ruestung/Schild `{name, ac, armorKind, bonus}`,
-  `dexModifier`, `alternativeFormulas` mit `base`, `flat`, `noShield` und
-  `modifiers: [{label, value}]`, `defenseStyle`, `bonuses: [{label, value}]`,
-  `other`, `manualOverride`. Rueckgabe behaelt `{total, label, parts}` sowie
-  gegebenenfalls `computed`/`overridden` fuer die vorhandene Anzeige bei.
-- `spellModifiers`: bereits itembereinigter `proficiencyBonus`,
-  `abilityModifier`, optional `attackBonus` und `saveBonus`; Ergebnis
-  `{attack, saveDC}`. Attributsauswahl und die bewusst unterschiedlichen
-  Bonus-Eingaben der Summary und der Angriffszeilen bleiben im Adapter.
-- `weaponAttack`: aufgeloeste Waffe, Edition, Martial-Arts-Die, Str-/Dex-Mod,
-  Proficiency, aktiver Schadensbonus, Item-/Waffen-Kritschwelle und Style-Flags.
-  Liefert Zahlen, Wuerfel, Attributswahl und anwendbare Style-Flags; der Adapter
-  stellt bestehende Zeilen, Notizen und Beschreibungen her.
-- `unarmedAttack`/`featureAttack`: entsprechende deterministische Teilrechnungen.
-  `martialArtsDie`, `isMonkWeapon`, `biggerDie`, `scaledDie` sind separat testbar.
-- `aggregateItems`: bereits ausgeruestete und erforderlichenfalls attuned Items
-  als normalisierte numerische Records. Armor-/Shield-AC ist hier bereits 0.
-  Liefert weiterhin Boni, Attributsfloors/-deltas, Tempooperationen und Quellen.
-  `abilityWithItems` wendet Delta und danach den maximalen Floor an.
-- `aggregateEffects`: bereits ausgewaehlte aktive Effekte inklusive `blocked`
-  und expliziter `abilityScores`; `effectDamage` begrenzt den flachen Effektbonus
-  wie bisher auf Strength-Melee-Angriffe.
+## Fachliche Besonderheiten und offene Fragen
 
-`fxMods` bleibt wegen seiner Prosa-/Feature-/Stufentabellen-Interpretation im
-Adapter. Lediglich sein Vergleich von Wuerfel-Upgrades nutzt die Engine.
-Slot-Tabellen, Spell Preparation, Weapon Mastery und Extra Attack werden nicht
-umgestaltet. Bestehende Item- und Effekt-Stackingregeln werden erhalten, keine
-neue allgemeine Stacking-Regel oder Dateninterpretation eingefuehrt.
+Der aktuelle AC-Algorithmus lässt ganze Kandidaten konkurrieren statt alternative
+Formeln zu summieren; bei Gleichstand gewinnt der erste Kandidat. Rüstung/Schild
+sind vom generischen Item-AC-Summenpfad ausgeschlossen. Attributsboni addieren
+Deltas und nehmen bei festen Werten das Maximum. Effekt-Resistenzen und
+Vorteilsattribute werden dedupliziert; numerische Boni bereits ausgewählter
+Effekte addiert. Auswahl/Deduplikation benannter Varianten bleibt in `fxAvailable`.
+Dies beschreibt den Algorithmus, keine universelle fachliche Stacking-Freigabe.
 
-## Tests und produktive Pfade
+Unterschiedliche Spell-Boni in Creator/Summary/Angriffszeilen sowie Monk-Unarmed,
+Dueling und Natural Armor sind weiterhin **fachliche Fehlerkandidaten**.
+Beobachtungen, Codebelege und nächster Klärungsschritt werden ausschließlich in
+[CONTRACT_REVIEW.md](tasks/CONTRACT_REVIEW.md) gepflegt. Ein Erhaltungsrefactoring
+ist kein Beleg ihrer Regelrichtigkeit; Korrekturen brauchen eigene Erwartungen
+und getrennte Prüfung beider Editionen.
 
-- `tools/validate_rules_core.mjs`: direkte synthetische Core-Tests einschliesslich
-  Stufengrenzen, HP-Overrides, Expertise, Items und Caster-Typen.
-- `tools/validate_rules_engine.mjs`: direkte Engine-Tests fuer AC-Kombinationen,
-  Zauber-/Kampfwerte, Item-Floors, Effekte und Quellen. Gefrorene Eingaben und
-  wiederholte Aufrufe sichern gegen Veraenderungen uebergebener Daten ab.
-- `tools/validate_rules_adapters.mjs`: echte App-Adapter und Sheet-Renderer mit
-  synthetischen Daten. Der Test prueft dargestellte AC-/Angriffswerte, Quellen,
-  echte Equip- und Level-Handler fuer 2014/2024 sowie Zauber-Summary-Unterschiede.
-  Nur Featurelisten, Startnavigation und die Route fuer Redraws sind ersetzt;
-  Berechnung und Sheet-HTML bleiben echt. Eine absichtlich falsche Engine-AC
-  erreicht die Anzeige; ein isolierter Kindprozess muss daran mit Exitcode 1
-  scheitern. Alte Fallbacks koennen eine Engine-Regression somit nicht verdecken.
-- `tools/validate.js` und der Node-Adapter `validate_rules.mjs`: unveraenderte
-  bestehende Regelassertions mit lokal generierten Daten, ergaenzt um den
-  Aufrufnachweis der produktiven Module. WSH behaelt die Script-/Polyfill-
-  Architektur; der Core benoetigt kein `Number.isNaN` mehr.
+## Prüfgrenzen und technische Schuld
 
-Die drei datenfreien Suiten laufen neben den vorhandenen Tests auf Windows und
-Ubuntu in GitHub Actions. Die vollstaendige Regelsuite bleibt lokal, benoetigt
-autorisierte Regeldaten und wird nicht durch einen datenfreien CI-Erfolg ersetzt.
-Testbefehle und ausgefuehrte Ergebnisse: [TESTING.md](TESTING.md),
-[TEST_BASELINE.md](TEST_BASELINE.md).
+Direkte Core-/Engine-Suiten prüfen synthetische Werte und unveränderte Eingaben.
+Adaptertests erreichen echte Berechnung, Sheet-HTML und Equip-/Level-Events;
+eine manipulierte Engine-AC muss in der Anzeige zu einer fehlgeschlagenen
+Assertion führen. Die vollständige lokale Suite nutzt autorisierte Regeldaten
+und Aufrufzähler für produktive Module. Befehle und Einschränkungen stehen nur in
+[TESTING.md](TESTING.md#pruefauswahl).
 
-## Verbleibende technische Schuld und PR05
-
-Die Datenaufbereitung und Textinterpretation in `app.js` sind weiterhin gross:
-`acFormulas`, `featureDcAbility`, `fxMods`, `fxAvailable`, `resolveArmor`,
-`resolveWeapon`, `spellInfo`, Spell Lists/Preparation und Slot-Tabellen.
-Auch `attackRows` erstellt noch Notizen und Beschreibungen; `attacksPerAction`
-und Weapon Mastery bleiben unangetastet. Die alten Core-Fallbacks sowie die
-textuelle Testfreigabe interner App-Funktionen bleiben Uebergangsloesungen.
-
-Die Engine erwartet normalisierte, vollstaendige Mechaniken aus den Adaptern;
-sie ersetzt weder Importvalidierung noch die Interpretation beliebiger
-5etools-Daten. Allgemeine Stacking-Regeln werden nicht neu erfunden. Die oben
-dokumentierten bestehenden fachlichen Unterschiede sind separate Fehlerkandidaten.
-
-Empfehlung fuer PR05: die Normalisierung von Items und aktiven Effekten als
-separate Adapter mit expliziten Datenvertraegen extrahieren und die Regex-Parser
-mit synthetischen Textfaellen absichern. Anschliessend die Core-Fallbacks und
-die textuelle Testinstrumentierung schrittweise entfernen. Korrekturen der
-Zauberbonus-Differenz separat mit klaren Vorher-/Nachher-Regeltests behandeln.
+Große Controller-Parser, Core-Fallbacks, UI-Adapterkopplung und textuelle
+Testinstrumentierung sind verbleibende technische Schuld, keine Empfehlung für
+bereits erledigte PRs. Eine spätere Extraktion ist in der
+[Klärungsaufgabe](tasks/CONTRACT_REVIEW.md#technische-schuld) eingeordnet.

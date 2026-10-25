@@ -1,3 +1,10 @@
+> **Historischer Stand – archiviert.** Der folgende Inhalt bleibt als damaliger
+> Plan bzw. Prüfnachweis erhalten, ist keine aktuelle Betriebsanleitung und
+> keine pauschale Aussage zum heutigen Teststatus. Überholte Serializer-,
+> Scope- und Phasenaussagen sind historisch zu lesen. Aktuell maßgeblich:
+> [Einrichtung](../../DEVELOPMENT.md), [Prüfungen](../TESTING.md),
+> [State-Vertrag](../CHARACTER_STATE.md), [Architektur](../ARCHITECTURE.md).
+
 # Ausgefuehrte Pruefungen
 
 ## Phase 4: Hardening (23.10.2026)

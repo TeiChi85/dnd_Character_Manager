@@ -1,5 +1,9 @@
 # Charakterdateien, Backups und Wiederherstellung
 
+Einrichtung/Start: [DEVELOPMENT.md](../DEVELOPMENT.md#normaler-start);
+API-Vertrag: [server/README.md](../server/README.md). Diese Anleitung beschreibt
+administrative Eingriffe; Tests nur nach [TESTING.md](TESTING.md#isolierter-live-test).
+
 Der Speicher liegt standardmaessig unter
 `%USERPROFILE%\.character-manager\characters`. `CC_CHARACTER_STORAGE` kann
 einen anderen privaten Ordner ausserhalb des Repositories bestimmen.
@@ -105,6 +109,6 @@ Der Papierkorb kann ohne Frist unbegrenzt wachsen. Deshalb freien Speicher und
 Serverprotokolle pruefen und den privaten Speicher regelmaessig extern sichern.
 
 Alle Nutzer der Bibliothek duerfen alle Charaktere bearbeiten und loeschen.
-Es gibt keine Authentifizierung: Betrieb ausschliesslich lokal bzw. in einem
-vertrauenswuerdigen Netzwerk. Der Entwicklungsserver bleibt auf `127.0.0.1`
-beschraenkt; eine Raspberry-Pi-Bereitstellung ist nicht Teil dieser Phase.
+Es gibt keine Authentifizierung. Der dokumentierte Entwicklungsserver bleibt
+auf `127.0.0.1` beschränkt; eine LAN-/Internet-/Raspberry-Pi-Bereitstellung ist
+nicht geprüft und gehört nicht zu dieser Anleitung.

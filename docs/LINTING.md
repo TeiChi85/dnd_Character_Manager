@@ -3,6 +3,8 @@
 ESLint, Ruff und Stylelint ergaenzen die vorhandenen Tests. Sie sind reine
 Entwicklungswerkzeuge: Offline-Start, Flask-Betrieb und datenfreie Node-Tests
 benoetigen die Linter nicht. Kein Build-Schritt, Formatter oder Prettier.
+Im aktuellen Manifest gibt es keine `format`-/`format:check`-Skripte; weder
+ESLint-Fixes noch `ruff format` sind als Projektformatter eingerichtet.
 
 ## Einrichtung
 
@@ -46,14 +48,12 @@ behalten die Originaldiagnose des Werkzeugs. Es werden keine Fixes angewandt.
 
 ## Versionen und Konfiguration
 
-| Werkzeug | Version / Datei | Aufgabe |
-| --- | --- | --- |
-| ESLint | 10.13.0 / `eslint.config.mjs` | JavaScript-Fehler |
-| globals | 17.13.0 | Browser- und Node-Globals |
-| eslint-plugin-html | 8.2.1 | Inline-Skripte mit HTML-Zeilennummern |
-| Stylelint | 17.16.0 / `stylelint.config.mjs` | CSS-Fehler |
-| postcss-html | 2.0.0 | CSS in HTML-Style-Bloecken |
-| Ruff | 0.17.2 / `ruff.toml` | Python-Fehler, Zielsyntax Python 3.12 |
+Maßgebliche Versionen: [Root-Manifest](../package.json) und
+[Lockfile](../package-lock.json) für ESLint, Stylelint, Globals und HTML-Erweiterungen;
+[requirements-lint.txt](../requirements-lint.txt) für Ruff. Die Konfigurationen sind
+[eslint.config.mjs](../eslint.config.mjs), [stylelint.config.mjs](../stylelint.config.mjs)
+und [ruff.toml](../ruff.toml). Mindestversion für Node: Root-`engines`;
+Python-Zielsyntax: `target-version` in Ruff. Hier keine zweite Versionsliste pflegen.
 
 Direkte npm-Versionen stehen exakt in `package.json`, transitive Abhaengigkeiten
 und Integritaetswerte in `package-lock.json`. Das Manifest ist privat und setzt
@@ -122,4 +122,5 @@ dem Lockfile und `requirements-lint.txt`, startet `npm run lint` und danach
 Linter mit synthetischen Fehlern, prueft Laufzeitgrenzen, HTML-Zeilennummern
 und Ausschluesse. Er fuehrt keine Regeldaten/Generatoren aus und schreibt keine
 Quell-Fixtures. Bestehende Windows-/Ubuntu-Tests und der Playwright-Job bleiben
-erhalten. Tatsaechliche Einfuehrungslaeufe stehen in [LINT_RESULTS.md](LINT_RESULTS.md).
+erhalten. Gewöhnliche Ergebnisse gehören in PR/CI; historische Einführungsnachweise
+liegen im Archiv und sind kein aktueller Teststatus.

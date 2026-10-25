@@ -1,149 +1,53 @@
-# D&D 5e Character Creator
+# CharacterManager
 
-A fully offline, data-driven **Dungeons & Dragons 5e character builder and sheet**, built as a
-single-page app in plain HTML/CSS/JavaScript. No build step, no server, no internet required —
-just open `index.html` in a browser (Chrome/Edge recommended).
+An offline D&D 2014/2024 character builder and playable character sheet in plain
+HTML, CSS and JavaScript. An optional local Flask server adds a shared character
+library. No production build or external account service is required.
 
-![The opening screen: choose a rules edition, load a saved character, or browse the rules reference pages](docs/screenshot-home.png)
+![CharacterManager home screen](docs/screenshot-home.png)
 
-## Features
+The application provides a guided builder, equipment and spell choices,
+editable gameplay values, local JSON import/export and rule reference pages.
+The library and sheet have responsive layouts; the complete mobile wizard design
+is still open. Availability of classes, features and reference content depends on
+your local data. See [product scope](docs/PROJECT.md) and [mobile scope](docs/MOBILE_UI.md).
 
-- **Guided wizard:** Edition → Class & Features → Background & Details → Species → Ability Scores →
-  Equipment → Spells → Character Sheet.
-- **Two rule editions:** 2014 (PHB) and 2024 (XPHB).
-- **All 13 core classes**, levels 1–20, with full per-level features, subclass selection, and every
-  choice surfaced (Metamagic, Fighting Style, Ability Score Improvement / feats, Draconic Ancestry, …).
-- **Backgrounds, species/lineages, feats, items, spells** — all pulled from the 5etools data set.
-- **Ability scores** via Point Buy, Standard Array, or Roll, folding in every racial/class increase.
-- **Equipment**: class/background starting gear or gold, a full item browser (incl. magic items and
-  variants like Frost Brand / Flame Tongue), currency, wear/wield, and attunement (max 3).
-- **Spells**: correct cantrips/spells known or prepared for class + level, with slot tracking.
-- **Live character sheet** (5-column layout): abilities, saves, skills, senses, proficiencies,
-  class resources, spell slots, attacks, inventory, features & traits, death saves, rest tracking,
-  XP/inspiration — most of it editable in place.
-- **Save / Load** characters to JSON, and **Export to PDF** into the official WotC form-fillable sheet.
+## Run locally
 
-## Running
+- **Offline:** open `index.html` in a current browser after preparing local data.
+  A loopback file server is also supported. Local JSON files work without Flask.
+- **Shared local library:** Flask serves the same frontend and a revision-checked
+  storage API, with private backups/trash. No authentication or public deployment
+  is provided; the documented start binds to `127.0.0.1`.
 
-An optional local Flask character storage API is available for MVP 1, Phase A.
-See [server/README.md](server/README.md) for Windows setup, endpoints and tests.
-It serves this same application at `http://127.0.0.1:8000/`, with a shared library
-on the start page and explicit server save actions. See the
-[frontend guide](docs/SERVER_LIBRARY.md) for usage and conflict recovery.
-The offline workflow below remains available.
+[DEVELOPMENT.md](DEVELOPMENT.md) is the authoritative setup/start guide, including
+local data generation and optional PDF resources. The checkout ships no generated
+rule content: use only a local 5etools-format source you are authorized to use.
+Homebrew books and personal characters must stay outside the repository.
+The original documentation named 5etools v2.33.1 as its validated reference;
+this is not a guarantee for other source versions or a new test result.
 
-Phase 4 adds revision-checked deletion to a private trash folder, automatic
-previous-version backups, global persistent light/dark mode and hardened JSON
-imports. See the [Phase 4 guide](docs/PHASE4.md) and
-[recovery instructions](docs/STORAGE_RECOVERY.md). No authentication is provided;
-use only locally or within a trusted network.
+The current Print/PDF actions open the generated HTML print view; the browser can
+save it as PDF. An older template-based exporter remains in the code but is not
+wired to these buttons. Its optional local resources are described in the setup
+guide. Browser file dialogs and downloads vary by browser.
 
-Open `index.html` in a browser. That's it. (The "Save As" dialog and PDF export work best in
-Chromium-based browsers.)
+## Find the right documentation
 
-## Project layout
+- [Project goals and limits](docs/PROJECT.md)
+- [Architecture map](docs/ARCHITECTURE.md): controller, state, pure rules modules,
+  UI factories, generators and optional storage
+- [Tests and verification](docs/TESTING.md), [lint setup](docs/LINTING.md)
+- [Library usage and conflicts](docs/SERVER_LIBRARY.md), [API](server/README.md),
+  [recovery](docs/STORAGE_RECOVERY.md)
+- [Contributor workflow](docs/WORKFLOW.md), [Codex instructions](AGENTS.md)
 
-```
-index.html            markup + script/style includes
-css/styles.css        all styling
-js/app.js             all application logic
-resources/
-  data-classes.js     class index (per edition)
-  features/*.js        per-class resolved features + subclasses
-  data-races.js        species / lineages
-  data-backgrounds.js  backgrounds
-  data-feats.js        feats
-  data-items.js        items (base + magic + variants) with descriptions
-  data-spells.js       spells (with class lists + descriptions)
-  data-spellcasting.js per-class spellcasting progression + slots
-  data-resources.js    class resource trackers (sorcery points, ki, rages, …)
-  data-starting.js     class/background starting equipment
-  pdf-lib.min.js       PDF library (for the fillable-sheet export)
-  pdf-template.js      base64 of the official 5e form-fillable sheet
-  pdf-fields.js        mapping of character data -> PDF form fields
-```
+## Origin and licence
 
-## Getting the game data (required)
+Based on [TaylorMouse/dnd_character_creator](https://github.com/TaylorMouse/dnd_character_creator).
+This repository is `TeiChi85/dnd_Character_Manager`. Preserve the original
+copyright, Git history and [MIT licence](LICENSE).
 
-The `resources/data-*.js` files are **not included in this repository**. They are generated from a
-local [5etools](https://5e.tools/index.html) data set, which contains Dungeons & Dragons content
-owned by Wizards of the Coast and is not redistributed here.
-
-1. Get 5etools and its `data` folder from [5e.tools](https://5e.tools/index.html).
-2. Generate the data files:
-
-```bash
-python tools/regen_all.py "path/to/5etools/data"
-```
-
-3. Open `index.html`.
-
-Until you do this, the app shows a short notice explaining the same thing. Each generator also
-runs standalone and accepts the data root as its first argument. The app was last built and
-validated against 5etools **v2.33.1**.
-
-### Optional: homebrew books
-
-A 5etools-format homebrew book is a single JSON file that declares itself in `_meta.sources` and
-holds its content under the same keys as the official data. Drop one somewhere the generators look
-and it is merged in on the next `regen_all.py` — its items appear in the equipment browser, its
-species in the species step, and its subclasses under the classes they belong to. Nothing is
-hardcoded per book.
-
-Searched, in order: `$CC_HOMEBREW` (files or folders, `;` separated), `homebrew/` in this repo,
-`homebrew/` beside your 5etools folder, and loose `.json` files next to it. A file is only treated
-as homebrew if it declares `_meta.sources`, so unrelated JSON in those folders is ignored.
-
-Homebrew content is labelled in the app: the source tag shows the abbreviation the book declares
-for itself, styled differently from official books, and its tooltip names the book, its author and
-the fact that it is homebrew. Keep the books outside this repository — third-party content is no
-more redistributable here than Wizards' own.
-
-### Optional: PDF export
-
-To export a filled official character sheet you need two more local files in `resources/`:
-
-```bash
-# 1. the PDF engine (MIT licensed)
-curl -o resources/pdf-lib.min.js https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js
-
-# 2. embed your own copy of the form-fillable 5e sheet
-python tools/gen_pdf_template.py "DnD_5E_CharacterSheet - Form Fillable.pdf"
-```
-
-Everything else works without these; the export button just explains what is missing.
-
-## Validating
-
-`tools/validate_rules.mjs` is the portable Node.js runner for the headless rules
-regression suite (Node.js 18+, no npm packages). It mocks the DOM, loads the real
-data plus `js/app.js`, builds characters across every core class, edition, level
-and subclass, and checks the derived numbers against the 5e rules:
-
-```bash
-node tools/validate_rules.mjs
-```
-
-The full suite needs locally generated rule data. The original Windows Script
-Host command remains available for comparison:
-
-```powershell
-cscript //nologo tools/validate.js
-```
-
-It covers proficiency bonus by level, all 18 skills (ability mapping and bonuses), saving
-throws, hit points, subclass timing, caster kind, spell-slot/cantrip progressions, class
-resources, Extra Attack, armour class, attunement and overall data integrity — and renders
-every subclass to catch runtime errors. It exits non-zero on any failure.
-Data-free backend, frontend, theme and runner smoke tests are documented in
-[docs/TESTING.md](docs/TESTING.md).
-
-## Licence and content
-
-The code in this repository is released under the MIT licence (see `LICENSE`).
-
-Dungeons & Dragons is a trademark of Wizards of the Coast. This project is an unofficial,
-non-commercial fan tool. It ships **no** game content: all rules text, spells, items, classes and
-other data are generated locally from your own [5etools](https://5e.tools/index.html) copy and are
-never committed here. The PDF export fills the freely distributed official character sheet, which
-you supply yourself.
+Dungeons & Dragons is a trademark of Wizards of the Coast. This unofficial fan
+tool distributes code, not game content. The code licence grants no rights to
+redistribute rules, homebrew books, portraits or official PDF templates.
