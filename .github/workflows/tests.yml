@@ -10,6 +10,28 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned development linters
+        run: |
+          npm ci --ignore-scripts --no-fund --no-audit
+          python -m pip install -r requirements-lint.txt
+      - name: Lint maintained sources
+        run: npm run --silent lint
+      - name: Verify linter configuration with synthetic errors
+        run: node tools/validate_lint.mjs
+
   test:
     name: Tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

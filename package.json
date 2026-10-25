@@ -1,0 +1,18 @@
+{
+  "name": "character-manager-dev",
+  "private": true,
+  "engines": {"node": "^22.13.0 || >=24"},
+  "scripts": {
+    "lint": "node tools/lint.mjs",
+    "lint:js": "node tools/lint.mjs js",
+    "lint:css": "node tools/lint.mjs css",
+    "lint:py": "node tools/lint.mjs py"
+  },
+  "devDependencies": {
+    "eslint": "10.13.0",
+    "eslint-plugin-html": "8.2.1",
+    "globals": "17.13.0",
+    "postcss-html": "2.0.0",
+    "stylelint": "17.16.0"
+  }
+}

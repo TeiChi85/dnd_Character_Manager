@@ -24,6 +24,14 @@
   `.venv` nutzen bzw. erstellen und `server/requirements.txt` installieren;
   Start im Repository: `.\.venv\Scripts\python.exe -m server.app`.
   Beide lokalen Server aus `DEVELOPMENT.md` an `127.0.0.1` binden (Standard 8000).
+- Lint: `npm.cmd ci --ignore-scripts --no-fund --no-audit` und
+  `.\.venv\Scripts\python.exe -m pip install -r requirements-lint.txt`;
+  danach `npm.cmd run --silent lint`. Node 22.13+ (22.x) oder 24+ erforderlich.
+  Unter Linux/macOS `npm` und `.venv/bin/python`; CI verwendet Setup-Python.
+  `node tools/validate_lint.mjs` prueft Regeln, Umgebungen und Ausschluesse
+  synthetisch. Umfang und Grenzen: `docs/LINTING.md`. Keine pauschalen
+  Regelabschaltungen oder automatischen Fixes; Fehler zuerst als
+  Datei:Zeile:Spalte, Regel und Meldung berichten. Lint ersetzt Tests nicht.
 - Tests: Python `-m unittest discover -s server -t . -v`; Node 18+ ohne npm-Pakete:
   `tools/validate_server_frontend.mjs`, `tools/validate_theme.mjs`,
   `tools/validate_class_loading.mjs` und `tools/validate_rules.mjs --self-test`.

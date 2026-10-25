@@ -21,9 +21,16 @@
 | Live-Bibliothek | `node tools/validate_live_library.mjs` | Keine Regeldaten; synthetische Charaktere und eigener Testserver | Nein; separat und bewusst nicht Teil des Standardlaufs |
 
 Node.js 18 oder neuer ist fuer die Entwicklungstests erforderlich, aber nicht
-fuer den produktiven Betrieb des Vanilla-JavaScript-Frontends. Es gibt kein
-npm-Manifest und keine zusaetzlichen Node-Paketabhaengigkeiten. Das Backend
-verwendet die Pakete aus `server/requirements.txt`.
+fuer den produktiven Betrieb des Vanilla-JavaScript-Frontends. Es gibt keine
+zusaetzlichen Node-Paketabhaengigkeiten fuer diese datenfreien Tests.
+Die optionalen Linter im Root-Manifest benoetigen Node 22.13+ (22.x) oder 24+;
+Playwright verwendet weiterhin sein separates Manifest. Das Backend verwendet
+die Pakete aus `server/requirements.txt`.
+
+Ergaenzende Fehlerpruefung: `npm run --silent lint`; Konfigurationspruefung:
+`node tools/validate_lint.mjs`. [Installation, Regeln und Ausschluesse](LINTING.md)
+sowie [tatsaechliche Einfuehrungslaeufe](LINT_RESULTS.md). Ein eigener CI-Job
+`Lint` prueft dieselben Quellen ohne Regeldaten; die Testjobs bleiben erhalten.
 
 ## Lokale Befehle
 
