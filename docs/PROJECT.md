@@ -5,10 +5,13 @@ Repository: **TeiChi85/dnd_Character_Manager**, basierend auf
 
 ## Produktziel
 
-Eine lokal nutzbare Charaktererstellung und Spieloberfläche für D&D 2014 und
-2024. Zielgruppe sind Spielende, die Charaktere ohne externen Kontodienst
-erstellen, als JSON mitnehmen und am Spieltisch bearbeiten möchten.
-Das optionale Flask-Backend ergänzt eine gemeinsame lokale Charakterbibliothek.
+Private Charakterverwaltung für den Nutzer und seine D&D-Gruppe: Charaktere
+für D&D 2014 und 2024 erstellen und am spielbaren Charakterbogen verwalten,
+mit Smartphone und Desktop als vollwertigen Zugängen. Die gemeinsame Bibliothek
+soll perspektivisch auf einem Raspberry Pi sicher im Heimnetz und später von
+außen für die private Gruppe erreichbar sein. Offline-Nutzung und lokale
+JSON-Dateien bleiben erhalten. Ein bestimmtes Konten-/Rollenmodell oder ein
+externer Kontodienst ist damit nicht beschlossen.
 
 ## Bestätigter Funktionsumfang
 
@@ -19,6 +22,20 @@ Löschen, Backups und manuelle Wiederherstellung. Bibliothek und Bogen haben
 responsive mobile Ansichten; das globale Theme gilt auch für Referenzseiten.
 Die Nutzbarkeit der Regeln setzt eigene lokal generierte Ressourcen voraus.
 Dies ist eine Beschreibung des Codes, keine pauschale Abnahme aller Funktionen.
+Aktuell gibt es keine Authentifizierung und keine geprüfte Netzwerkbereitstellung;
+der dokumentierte Serverstart ist Loopback. Das beschreibt den Stand, keinen
+dauerhaften Ausschluss des privaten Netzwerkbetriebs.
+
+## Noch auszuarbeitende Vorhaben
+
+- [Mobiler Builder](tasks/MOBILE_BUILDER.md): nächster UI-Ausbau nach Bibliothek
+  und Charakterbogen, innerhalb der bestehenden Design- und Datenverträge.
+- [Sicherer privater Betrieb auf Raspberry Pi](tasks/PRIVATE_PI_OPERATION.md):
+  Zugriffs- und Betriebskonzept vor einer gesondert beauftragten Implementierung.
+
+Deployment, Domain, Tunnel, VPN und Authentifizierungslösung sind offen.
+Ein Obsidian-Web-Wiki auf demselben Pi bleibt ein benachbarter Dienst;
+daraus folgt keine Integration in den Character Manager.
 
 ## Dauerhafte Grenzen
 
@@ -28,9 +45,10 @@ Dies ist eine Beschreibung des Codes, keine pauschale Abnahme aller Funktionen.
   Speicheränderung einschleusen. Datenkompatibilität: [State-Vertrag](CHARACTER_STATE.md).
 - Keine mitgelieferten Regelbücher, Homebrew-Inhalte, Charaktere oder PDF-Vorlagen.
   MIT gilt für Code, nicht für Rechte an D&D-Inhalten oder fremden Bildern.
-- Keine Konten, Rollen, Datenbank, Autosave oder geprüfte Netzwerkbereitstellung.
-  Der dokumentierte Serverstart bleibt auf Loopback. Keine neue LAN-, Internet-
-  oder Raspberry-Pi-Anleitung aus alten Phasenplänen ableiten.
+- Kein öffentliches Mehrmandantenprodukt aus dem privaten Gruppenziel ableiten.
+  Neue Konten-, Rollen-, Datenbank- oder Autosave-Funktionen benötigen einen
+  passenden Auftrag. Keine LAN-, Internet- oder Raspberry-Pi-Freigabe aus alten
+  Phasenplänen ableiten; bis zu geprüfter neuer Anleitung bleibt der Start Loopback.
 - Keine neuen Conditions-, Notes-, Party-Inventory-, Container- oder Würfelfunktionen
   allein aus der UI-Referenz ableiten.
 

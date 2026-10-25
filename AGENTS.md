@@ -35,6 +35,18 @@ Datengenerierung und das optionale Flask-Backend. Repository:
   fehlende Voraussetzungen und Skips ausdrücklich unterscheiden.
 - Betroffene aktuelle Dokumentation im selben Änderungspaket anpassen.
   Keine Pflicht, unbetroffene Dokumente oder jedes Mal alle Tests anzufassen.
+- Für kleine und große Aufgaben gilt [WORKFLOW.md](docs/WORKFLOW.md): `PR: neu`
+  autorisiert Branch, Commit, Push und neuen PR; `PR: #<Nummer>`/PR-URL die
+  Fortsetzung im passenden offenen PR. Nutzerbeschränkungen gehen vor.
+  CI des letzten Pushs nachverfolgen; niemals mergen oder Auto-Merge aktivieren.
+- `Server: starten` autorisiert den optionalen manuellen Start gemäß Workflow;
+  `Server: aus` oder keine Angabe lässt vorhandene Server unverändert und startet
+  keinen zusätzlichen Anwendungsserver. Eindeutige Sitzungsanweisungen beachten.
+- Bei Verhaltensänderungen passende Tests pflegen; Fehler sinnvoll durch
+  Regressionstests absichern. Verhalten/Fehlerfälle statt Implementierungsdetails
+  prüfen, Erwartungen nicht für Grün abschwächen. Auswahl: [TESTING.md](docs/TESTING.md).
+- UI-Arbeit verwendet vorhandene Tokens/Komponenten zuerst; neue Varianten nur
+  bei Bedarf, kein Redesign ohne Auftrag. Design-Soll und Umsetzung unterscheiden.
 - Gesamten Diff prüfen. Vor einem erlaubten Commit zusätzlich
   `git diff --cached --name-only` und Staging-Diff prüfen. Git-Aktionen richten
   sich nach dem Nutzerauftrag; keine zusätzlichen Freigabehürden erfinden.

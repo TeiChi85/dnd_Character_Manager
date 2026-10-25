@@ -69,11 +69,10 @@ Semantik. Eine Beschreibung öffnen verbraucht keine Ressource.
 ## Kontrast und responsive Regeln
 
 Die `--cm-*`-Tokens begrenzen das Library-/Sheet-Design, keine globale Ablösung
-der Builder-Tokens. Gegenüber den ursprünglichen Dark-Näherungswerten der
-Spezifikation sind **Muted auf `#A8B5BD`** und **Danger auf `#FF6770`** angepasst.
-Accent bleibt `#2D94D9`; `--cm-on-accent` ist im Dark Theme dunkel, weil weißer
-normaler Text darauf zu wenig Kontrast hätte. Light verwendet u.a. `#076BAB`
-als Accent mit weißem Text. Die Browserchecks verlangen für ihre ausgewählten
+der Builder-Tokens. Die implementierten Dark-Kontrastkorrekturen, Accent-Textfarbe
+und vorhandene Light-Palette stimmen mit den zentralen
+[Farbvorgaben](UI_DESIGN_SPEC.md#21-farb-tokens) überein. `--cm-on-accent` ist
+im Dark Theme dunkel, im Light Theme weiß. Die Browserchecks verlangen für ihre ausgewählten
 Text-/Buttonpaare mindestens 4,5:1; das ist keine vollständige WCAG-Zertifizierung.
 Verbindliche gestalterische Anforderungen werden dadurch nicht abgeschwächt.
 

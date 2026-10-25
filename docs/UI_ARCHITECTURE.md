@@ -5,6 +5,12 @@ allein in [UI_DESIGN_SPEC.md](UI_DESIGN_SPEC.md); responsive Umsetzung und
 begründete Abweichungen in [MOBILE_UI.md](MOBILE_UI.md). Die kompakte Modulkarte
 steht in [ARCHITECTURE.md](ARCHITECTURE.md).
 
+Bei UI-Arbeit zuerst vorhandene semantische Tokens und Komponenten verwenden;
+neue Varianten nur bei konkretem Bedarf. Ein Designauftrag ist Voraussetzung
+für Designänderungen, kein beiläufiges Redesign bei technischen Änderungen.
+Design-Soll, Ist-Vertrag und offene Abweichungen getrennt dokumentieren;
+zentrale Farbziele: [Designsystem](UI_DESIGN_SPEC.md#21-farb-tokens).
+
 ## Module und Context
 
 Alle `js/ui/`-Dateien sind klassische Browser-Skripte mit CommonJS-Export für
