@@ -1,0 +1,9 @@
+required-version = "==0.17.2"
+target-version = "py312"
+include = ["server/**/*.py", "tools/**/*.py"]
+extend-exclude = ["Microsoft", "CharacterManager_Harness_v0.1", "artifacts"]
+force-exclude = true
+
+[lint]
+# Name, control-flow and expression errors; no formatting or unused-name sweep.
+select = ["E9", "F63", "F7", "F82"]

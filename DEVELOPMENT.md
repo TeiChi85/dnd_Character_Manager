@@ -51,8 +51,10 @@ py -3 --version
 ```
 
 Für den reinen Offline-Betrieb sind weder Node.js, npm noch ein OpenAI-API-Schlüssel
-erforderlich. Die optionale Serverbibliothek benötigt Flask. Node.js wird nur
-fuer die Entwicklungstests gebraucht; npm-Pakete sind dafuer nicht erforderlich.
+erforderlich. Die optionale Serverbibliothek benötigt Flask. Node.js wird fuer
+Entwicklungstests und Lint gebraucht; die datenfreien Node-Tests benoetigen
+weiterhin keine npm-Pakete. Die optionalen Linter benoetigen Node 22.13+ (22.x)
+oder 24+ und eigene Entwicklungsabhaengigkeiten.
 Codex ist das Entwicklungswerkzeug.
 
 ## 2. Repository klonen und in VS Code öffnen
@@ -159,6 +161,12 @@ Es gibt keinen Build-Schritt; nach Änderungen Browser neu laden, bei alten
 Dateien `Strg+F5` verwenden. Alternativ funktioniert direktes Öffnen von `index.html`.
 
 ## 5. Vorhandene Tests ausführen
+
+Zusaetzliche schnelle Fehlerpruefung fuer eigenen JavaScript-, Python- und
+CSS-Code: [Einrichtung, Befehle, Umfang und Grenzen](docs/LINTING.md).
+Nach einmaliger Installation: `npm.cmd run --silent lint`, danach bei
+Konfigurationsaenderungen `node tools/validate_lint.mjs`. Derselbe Lint-Einstieg
+laeuft im separaten CI-Job. Lint ersetzt die folgenden Tests nicht.
 
 Backend ohne D&D-Regeldaten, mit isolierten temporaeren Speichern:
 

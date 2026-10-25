@@ -1,0 +1,2 @@
+# Development only; keep separate from the optional Flask runtime.
+ruff==0.17.2
