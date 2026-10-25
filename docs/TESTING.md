@@ -8,6 +8,8 @@
 | Rules Core | `node tools/validate_rules_core.mjs` | Nein; synthetische Zahlen und Stufengrenzen | Ja |
 | Character State / Serialization | `node tools/validate_character_state.mjs` | Nein; Defaults und synthetische v1-Exports | Ja |
 | UI-Komponenten und echte App-Renderer | `node tools/validate_ui_components.mjs` | Nein; synthetische Daten, DOM und Events | Ja |
+| Mobile Hosts, SectionSelector und State-Isolation | `node tools/validate_mobile_ui.mjs` | Nein; synthetisch | Ja, Windows/Ubuntu |
+| Mobile Browsermatrix | `node tools/browser/mobile.mjs` | Nein; eigene synthetische HTTP-/API-Fixture | Ja, separater Linux-Job |
 | Rules Engine | `node tools/validate_rules_engine.mjs` | Nein; synthetische AC-/Kampf-/Item-/Effekteingaben | Ja |
 | Rules-Adapter | `node tools/validate_rules_adapters.mjs` | Nein; echte App-Adapter mit synthetischer Ausruestung und Features | Ja |
 | Frontend/API-Integration im simulierten Browser | `node tools/validate_server_frontend.mjs` | Nein; synthetische Daten | Ja |
@@ -32,6 +34,7 @@ Im Repository-Stamm unter Windows PowerShell:
 node tools\validate_rules_core.mjs
 node tools\validate_character_state.mjs
 node tools\validate_ui_components.mjs
+node tools\validate_mobile_ui.mjs
 node tools\validate_rules_engine.mjs
 node tools\validate_rules_adapters.mjs
 node tools\validate_server_frontend.mjs
@@ -192,3 +195,38 @@ oder native Datei-/PDF-Dialoge. Ein lokaler HTML-Vergleich mit der Basisversion
 kann ueber `createUIHarness({appSource: baselineSource})` durchgefuehrt werden;
 CI benoetigt weder Git-Historie noch Regeldaten. Architektur, Vertrauensgrenzen
 fuer HTML und PR07-Voraussetzungen: [UI_ARCHITECTURE.md](UI_ARCHITECTURE.md).
+
+## PR07: Mobile Browser und State-Isolation
+
+Die zusaetzliche datenfreie Mobile-Suite prueft 93 Faelle: die produktive mobile
+Komposition, zehn Abschnittswechsel, eindeutige IDs, Fokus-Rueckgabe, persistente
+HP nach Redraw/Navigation, bestehender Builder sowie Library-Suche und sicheres
+Text-Rendering. Der gemeinsame DOM-Harness modelliert dafuer Knotenverschiebung,
+aktiven Fokus, Dialog-Close-Events und einen expliziten mobilen Media-Query-Modus.
+Die alten Harnesses wurden nur um die benoetigte `setAttribute`-Methode ergaenzt;
+ihre bisherigen Assertions bleiben erhalten.
+
+Die Playwright-Suite startet ihre eigene synthetische API/Dateiauslieferung auf
+einem freien Loopback-Port. Sie verwendet niemals den laufenden Flask-Server
+oder persoenliche Charakterdateien. Optionale npm-Entwicklungsabhaengigkeiten
+liegen in `tools/browser/`; die uebrigen Tests benoetigen weiterhin keine Pakete.
+Node 20+ ist nur fuer diese Browser-Suite erforderlich (CI: 22).
+
+```powershell
+npm.cmd ci --prefix tools/browser
+npx.cmd --prefix tools/browser playwright install chromium webkit
+node tools/browser/mobile.mjs
+```
+
+Unter Linux `npm`/`npx`; bei fehlenden Systembibliotheken Playwright mit
+`install --with-deps chromium webkit` ausfuehren. Die reproduzierbare Matrix
+beinhaltet beide Browser, beide Themes und sieben Phone-/Tablet-/Desktop-
+Viewports. Sie prueft Seitenueberlauf, 44-px-Controls, semantische Farbkontraste,
+Dialogfokus, Back, Busy-/Konflikt-/Offline-Zustaende, Filter, JSON und persistente
+HP-/Slot-/Equip-/Attunement-Werte. Builder-Styles werden mit und ohne Mobile-CSS
+verglichen; beide Editionen bleiben bedienbar. Screenshots bleiben lokal ignoriert.
+
+Dies sind Headless-Browserchecks, keine echte Android-/iPhone-, Screenreader-,
+Softwaretastatur- oder native Dateidialog-Abnahme. Die Desktop-Reflow-Probe mit
+halbierter CSS-Breite ist keine vollstaendige Zoompruefung. Details und bekannte
+Grenzen: [MOBILE_UI.md](MOBILE_UI.md).

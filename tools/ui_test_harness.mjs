@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const source=name=>readFileSync(new URL(`../${name}`,import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const decode=s=>s.replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
-export function createUIHarness({appSource=source('js/app.js')}={}){
+export function createUIHarness({appSource=source('js/app.js'),mobile=false}={}){
   function matches(node,selector){
     const tag=selector.match(/^[\w-]+/);if(tag&&node.tagName!==tag[0])return false;
     for(const [,id] of selector.matchAll(/#([\w-]+)/g))if(node.id!==id)return false;
@@ -26,7 +26,7 @@ export function createUIHarness({appSource=source('js/app.js')}={}){
     set innerHTML(html){this.markup=String(html);this.children=[];parse(this.markup,this);}
     setAttribute(k,v){this.attrs[k]=String(v);if(k==='value')this.value=decode(String(v));if(k==='checked')this.checked=true;}
     getAttribute(k){return Object.hasOwn(this.attrs,k)?this.attrs[k]:null;}
-    appendChild(child){child.parentNode=this;this.children.push(child);return child;}
+    appendChild(child){if(child.parentNode)child.parentNode.removeChild(child);child.parentNode=this;this.children.push(child);return child;}
     removeChild(child){this.children=this.children.filter(x=>x!==child);child.parentNode=null;}
     contains(node){return node===this||this.children.some(x=>x.contains(node));}
     querySelectorAll(selector){
@@ -46,8 +46,8 @@ export function createUIHarness({appSource=source('js/app.js')}={}){
     removeEventListener(type,fn){this.listeners[type]?.delete(fn);}
     fire(type,extra={}){const event={target:this,stopPropagation(){},preventDefault(){},...extra};
       for(const fn of [...this.listeners[type]||[]])fn(event);this['on'+type]?.(event);}
-    click(){this.fire('click');}focus(){this.focused=true;}scrollIntoView(){}
-    showModal(){this.open=true;}close(){this.open=false;this.onclose?.();}
+    click(){this.fire('click');}focus(){this.focused=true;document.activeElement=this;}scrollIntoView(){}
+    showModal(){this.open=true;}close(){this.open=false;this.fire('close');}
   }
   function parse(html,host){
     const stack=[host];
@@ -79,6 +79,7 @@ export function createUIHarness({appSource=source('js/app.js')}={}){
     CC_RESOURCES:{synthetic:[{name:'Synthetic Resource',values:[2,2,3,3,4]}]},CC_STARTING:{classes:{},backgrounds:{}},CC_FEATS:[],CC_OPTFEATURES:[]};
   const alerts=[],calls={};const context=vm.createContext({window,document,console,alert:msg=>alerts.push(msg),confirm:()=>true,Promise,
     setTimeout:window.setTimeout,clearTimeout:window.clearTimeout});
+  if(mobile)window.matchMedia=()=>({matches:true,addEventListener(){}});
   for(const name of ['character-validation','core/character-state','core/rules-core','core/rules-engine',
     'ui/components','ui/rule-text','ui/creator','ui/character-sheet','ui/navigation','ui/library'])vm.runInContext(source(`js/${name}.js`),context,{filename:name});
   for(const name of ['CCRuleTextUI','CCCreatorUI','CCCharacterSheetUI','CCNavigationUI']){

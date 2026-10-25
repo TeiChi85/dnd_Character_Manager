@@ -5,6 +5,20 @@
     var window=context.window,document=context.document;
     var alert=context.actions.alert,confirm=context.actions.confirm;
     function $(id){return document.getElementById(id);}
+    var fromHistory=false;
+    function remember(view){
+      if(!fromHistory&&window.history&&window.history.pushState&&(!window.history.state||window.history.state.cmView!==view))window.history.pushState({cmView:view},"","#"+view);
+    }
+    function syncShell(){
+      if(!document.body||!document.body.classList)return;
+      var sheet=uiState.screen==="build"&&uiState.currentStep==="sheet";
+      document.body.classList.toggle("cm-view",uiState.screen==="edition"||sheet);
+      [["mobileLibrary",uiState.screen==="edition"],["mobileCharacter",sheet],["mobileBuild",!sheet&&uiState.screen==="build"]].forEach(function(pair){
+        var button=$(pair[0]);if(!button)return;
+        button.setAttribute("aria-current",pair[1]?"page":"false");
+        if(pair[0]!=="mobileLibrary")button.disabled=!state.className;
+      });
+    }
     var render=context.adapters.render;
     var renderRecents=context.adapters.renderRecents;
     var ICON=context.constants.ICON;
@@ -14,9 +28,13 @@
     $("screen-build").classList.add("hidden");$("screen-edition").classList.remove("hidden");
     renderRecents();
     context.actions.refreshLibrary();
+    syncShell();
+    remember("library");
   }
   function setStep(step){
     uiState.currentStep=step;
+    syncShell();
+    remember(step==="sheet"?"character":"build");
     $("step-class").classList.toggle("hidden",step!=="class");
     $("step-background").classList.toggle("hidden",step!=="background");
     $("step-species").classList.toggle("hidden",step!=="species");
@@ -38,8 +56,31 @@
     var mounted=false;
     function mount(){
       if(mounted)return;mounted=true;
+      function bind(id,action){var node=$(id);if(node)node.addEventListener("click",action);}
+      bind("createNew",function(){var box=$("createOptions"),opening=box.classList.contains("hidden");box.classList.toggle("hidden",!opening);$("createNew").setAttribute("aria-expanded",String(opening));});
+      bind("mobileLibrary",function(){if(context.actions.canNavigate&&!context.actions.canNavigate())return;showEdition();});
+      bind("mobileCharacter",function(){if(state.className)showBuild("sheet");});
+      bind("mobileBuild",function(){if(state.className)showBuild("class");});
+      bind("mobileEdit",function(){$("characterActions").close();showBuild("class");});
+      bind("mobileExport",function(){$("characterActions").close();context.actions.save();});
+      bind("mobilePrint",function(){$("characterActions").close();context.actions.print();});
+      bind("actionsClose",function(){$("characterActions").close();});
+      if(window.matchMedia){var mobile=window.matchMedia("(max-width: 1023px)");if(mobile.addEventListener)mobile.addEventListener("change",function(){if(uiState.currentStep==="sheet")render();});}
+      if(window.history&&window.history.replaceState)window.history.replaceState({cmView:"library"},"","#library");
+      if(window.addEventListener)window.addEventListener("popstate",function(event){
+        var section=$("sectionDialog"),actions=$("characterActions");
+        if(section&&section.open){section.close();return;}if(actions&&actions.open){actions.close();return;}
+        if(context.actions.canNavigate&&!context.actions.canNavigate()){
+          var current=uiState.screen==="edition"?"library":uiState.currentStep==="sheet"?"character":"build";
+          if(window.history)window.history.pushState({cmView:current},"","#"+current);return;
+        }
+        var view=event.state&&event.state.cmView;
+        fromHistory=true;
+        try{if(view==="library"||!view||!state.className)showEdition();else showBuild(view==="build"?"class":"sheet");}finally{fromHistory=false;}
+      });
       Array.prototype.forEach.call(document.querySelectorAll(".ed-card"),function(card){
         card.addEventListener("click",function(){context.actions.chooseEdition(card.getAttribute("data-edition"));});
+        card.addEventListener("keydown",function(event){if(event.key==="Enter"||event.key===" "){event.preventDefault();card.click();}});
       });
       $("changeEdition").addEventListener("click",context.actions.home);
       $("saveBtn").addEventListener("click",context.actions.save);
@@ -69,7 +110,7 @@
       var links={"toBackground": "background", "toClass": "class", "toSpecies": "species", "toBackground2": "background", "toAbilities": "abilities", "toSpecies2": "species", "toEquipment": "equipment", "toAbilities2": "abilities", "toSpells": "spells", "toEquipment2": "equipment", "toSheet": "sheet", "toSpells2": "spells"};
       Object.keys(links).forEach(function(id){$(id).addEventListener("click",function(){setStep(links[id]);});});
     }
-    return {mount:mount,showEdition:showEdition,setStep:setStep,showBuild:showBuild};
+    return {mount:mount,showEdition:showEdition,setStep:setStep,showBuild:showBuild,syncShell:syncShell};
   }
   root.CCNavigationUI={create:create};
   if(typeof module!=="undefined"&&module.exports)module.exports={create:create};

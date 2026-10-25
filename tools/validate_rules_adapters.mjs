@@ -10,7 +10,7 @@ let checks=0;
 function eq(actual,expected){assert.deepEqual(JSON.parse(JSON.stringify(actual)),expected);checks++;}
 function harness({inventory=[],features=[],conditions=[],edition='classic',active={}}={}){
   const element=()=>({innerHTML:'',value:'',style:{},handlers:{},classList:{add(){},remove(){},toggle(){},contains(){return false;}},
-    addEventListener(type,handler){this.handlers[type]=handler;},
+    addEventListener(type,handler){this.handlers[type]=handler;},setAttribute(){},
     querySelectorAll(selector){
       if(selector!=='.sh-equip')return [];
       this.equipButtons=[...this.innerHTML.matchAll(/<button[^>]*class="[^"]*\bsh-equip\b[^"]*"[^>]*data-i="(\d+)"/g)].map(match=>{

@@ -323,3 +323,59 @@ Der vorhandene Benutzerserver und dessen Charakterbibliothek wurden nicht fuer
 Testschreibzugriffe verwendet. `Microsoft/` bleibt ausserhalb der Commits.
 Uebergangsadapter, DOM-Host-Vertrag und PR07-Voraussetzungen stehen in
 [UI_ARCHITECTURE.md](UI_ARCHITECTURE.md).
+
+## PR07: Mobile Library und Character Sheet
+
+Am **24.10.2026** auf dem gemergten PR06 begonnen: Basis `faa695c`, Branch
+`feature/07-mobile-library-sheet`, PR #9. Windows, Node 24.22.1,
+Python 3.15.1 aus `.venv`. Derselbe vorhandene lokale Regeldatensatz wie PR06;
+keine Regeldaten heruntergeladen, generiert oder hochgeladen.
+
+| Pruefung | Vorher | Nachher | Ergebnis |
+| --- | --- | --- | --- |
+| `node tools/validate_rules.mjs` | 1.533 Checks, 242/242 Unterklassen | 1.533 Checks, 242/242 Unterklassen | 0 Fehler, Exit 0 |
+| `cscript.exe //nologo tools\validate.js` | 1.533 Checks, 242/242 Unterklassen | 1.533 Checks, 242/242 Unterklassen | 0 Fehler, Exit 0 |
+| `node tools/validate_mobile_ui.mjs` | neu | 93 Checks | bestanden |
+| `node tools/browser/mobile.mjs` | neu | 1.066 Checks, 28 Browser/Theme/Viewport-Kombinationen | bestanden |
+| `node tools/validate_ui_components.mjs` | PR06: 117 | 117 Checks | bestanden |
+| Character State / Rules Core / Rules Engine | PR06: 90 / 172 / 92 | 90 / 172 / 92 Checks | bestanden |
+| Rules-Adapter | PR06: 82 | 82 Checks | bestanden |
+| Frontend / Klassenladen / Theme | PR06: 37 / 8 / 14 | 37 / 8 / 14 Szenarien | bestanden |
+| `node tools/validate_rules.mjs --self-test` | PR06: bestanden | Smoke, Missing-Data-Diagnose, Failure-Exit | bestanden |
+| Python `-m unittest discover -s server -t . -v` | PR06: 39 | 39 Tests | bestanden |
+
+Nur die beiden vollstaendigen Regel-Runner wurden hier als neue Vorher-/Nachher-
+Laeufe ausgefuehrt; die mit PR06 markierten Werte sind historische Referenzen.
+Die Klassenlade-Suite fuehrt beim Harness-Import die 37 Frontendszenarien erneut aus.
+Saemtliche fachlichen Assertions bleiben erhalten. Die DOM-Fixtures erhielten
+`setAttribute`; der neue mobile Harness zusaetzlich Focus-/Close-/Move-Semantik.
+
+Browser: Playwright **1.64.1**, Chromium und WebKit headless auf Windows,
+jeweils Dark und Light, Viewports 320x700, 375x812, 390x844, 430x932, 768x1024,
+1024x768 und 1440x900. Die 1.066 Checks umfassen Ueberlauf, sichtbare 44-px-
+Controls, Text-/Button-Kontraste, Dialogfokus/Back, Sections, Suche/Gradfilter,
+Busy-/Offline-/Konfliktzustaende, Delete/Cancel, lokale JSON-Dateien und
+Persistenz von HP, Slots, Equip und Attunement nach Save und Reload.
+Die Builder-Probe vergleicht bestehende Control-Styles mit aktivem/deaktiviertem
+Mobile-CSS; 2014- und 2024-Erstellung bleiben erreichbar. Sie deckte eine
+geerbte Textfarbe in WebKit auf, die anschliessend enger begrenzt wurde.
+
+Zentrale synthetische Screenshots wurden lokal visuell geprueft, darunter
+Library, Overview, Skills, Combat, Spells und Inventory in beiden Themes.
+Die Pruefung fuehrte zu einem kompakteren Kopf und gestapelten Angriffszeilen.
+Artefakte bleiben im ignorierten Browser-Artefaktordner. Die CI ergaenzt die
+93 schnellen Tests auf Windows/Ubuntu und einen separaten Linux-Browserjob;
+der finale Checkstatus wird am PR ueberwacht.
+Run `40119233326` auf `874eaac` bestand mit allen drei Jobs; auch unter Linux
+meldete die Browsermatrix 1.066 erfolgreiche Checks. Ein zuvor nur dort sichtbarer
+3-px-Ueberlauf bei 320 px wurde durch flexible Kopfzeilenbreite behoben.
+
+Grenzen: keine echten Android-/iPhone-Geraete, kein Screenreader-/Software-
+tastaturtest, kein nativer Dateipicker-/PDF-Dialogtest. Die halbierte Desktop-
+CSS-Breite prueft Reflow, keinen vollstaendigen echten Textzoom. Browser-API-
+Persistenz ist synthetisch; reale Backend-Speicherung wird durch die 39
+Python-Tests abgedeckt. Kein erneuter Live-Library-Lauf gegen Flask.
+Homebrew wurde mangels lokalem Buch in der vollstaendigen Suite explizit
+uebersprungen. Der Nutzerserver und seine Charakterdateien wurden nicht fuer
+Testschreibzugriffe verwendet. `Microsoft/` bleibt ausserhalb der Commits.
+Anleitung, Scope PR08/PR09 und Einschraenkungen: [MOBILE_UI.md](MOBILE_UI.md).

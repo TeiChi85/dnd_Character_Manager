@@ -5,6 +5,12 @@ und Regeltexte liegen in `js/ui/`. `app.js` verbindet sie mit State und Rules.
 [Schnittstellen und Vorbereitung fuer PR07](docs/UI_ARCHITECTURE.md).
 Zusatztest ohne Regeldaten: `node tools/validate_ui_components.mjs`.
 
+**PR07 Library und Sheet:** Responsive Abschnitte, SectionSelector und mobile
+Navigation sind implementiert. Der Builder folgt erst in PR08.
+[Bedienung, Breakpoints und Browserpruefung](docs/MOBILE_UI.md).
+Schnelltest: `node tools/validate_mobile_ui.mjs`; die optionale Playwright-
+Entwicklungsumgebung liegt getrennt unter `tools/browser/` (Node 20+).
+
 **Phase 4:** Revisionssicheres Loeschen mit privatem Papierkorb, automatische
 Dateibackups, globale Theme-Auswahl und gemeinsame JSON-Validierung sind
 implementiert. [Bedienung, Testbefehle und Grenzen](docs/PHASE4.md),
@@ -169,6 +175,8 @@ node tools\validate_class_loading.mjs
 node tools\validate_theme.mjs
 node tools\validate_rules_core.mjs
 node tools\validate_character_state.mjs
+node tools\validate_ui_components.mjs
+node tools\validate_mobile_ui.mjs
 node tools\validate_rules_engine.mjs
 node tools\validate_rules_adapters.mjs
 node tools\validate_rules.mjs --self-test

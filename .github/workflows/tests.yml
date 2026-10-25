@@ -40,6 +40,8 @@ jobs:
         run: node tools/validate_character_state.mjs
       - name: Test UI components
         run: node tools/validate_ui_components.mjs
+      - name: Test mobile UI state and navigation
+        run: node tools/validate_mobile_ui.mjs
       - name: Run rules engine unit tests
         run: node tools/validate_rules_engine.mjs
       - name: Run synthetic rules adapter tests
@@ -52,3 +54,19 @@ jobs:
         run: node tools/validate_theme.mjs
       - name: Verify portable rules harness without private rule data
         run: node tools/validate_rules.mjs --self-test
+
+  browser:
+    name: Synthetic mobile browsers
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated development dependencies
+        run: npm ci --prefix tools/browser
+      - name: Install Chromium and WebKit
+        run: npx --prefix tools/browser playwright install --with-deps chromium webkit
+      - name: Test synthetic mobile library and sheet
+        run: node tools/browser/mobile.mjs

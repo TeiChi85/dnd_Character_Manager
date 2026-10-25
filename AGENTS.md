@@ -36,6 +36,12 @@
   Controller. `docs/UI_ARCHITECTURE.md` beschreibt Rendering und DOM-Vertraege.
   `node tools/validate_ui_components.mjs` prueft produktive UI-Module mit
   synthetischen Daten, Events und eingefrorenem persistentem State.
+  PR07: `node tools/validate_mobile_ui.mjs` prueft mobile Hosts/Navigation.
+  Optionale Browser-Suite: `node tools/browser/mobile.mjs` nach `npm ci --prefix
+  tools/browser` und Playwright-Browserinstallation (Node 20+; Details in
+  `docs/MOBILE_UI.md`). Ausschliesslich synthetischer eigener Testserver.
+  Neues Library-/Sheet-CSS in `css/mobile.css` kontextbezogen halten; der
+  bestehende Builder bleibt bis PR08 unveraendert. Deployment folgt separat.
   `tools/validate_character_state.mjs` prueft Defaults, Legacy-Normalisierung
   und Serialisierung. `js/core/character-state.js` besitzt den v1-Datenvertrag;
   `state.sheet` ist Gameplay, `uiState` und `derivedState` sind nicht persistent.
