@@ -12,6 +12,13 @@ bereits umgesetzten Funktionen oder neuen Branch-/Merge-Vorgaben.
 Keine neue D&D-Logik, Schemaänderung, Conditions-/Notes-/Containerfunktion,
 Abschnittssortierung oder zusätzliche Würfelfunktion aus Referenzbildern ableiten.
 Eine geprüfte Netzwerkbereitstellung gehört nicht zu dieser Umsetzung.
+[PROJECT.md](PROJECT.md) definiert den weitergehenden Produkt-Scope und priorisiert
+den interaktiven mobilen Bogen vor dem verbleibenden Builder-Design. Manuelle
+Zustandsverwaltung ist Produkt-Soll; ihr konkreter Automatisierungsumfang bleibt
+gesondert festzulegen. Die obige Grenze betrifft diese bestehende UI-Umsetzung,
+nicht einen dauerhaften Ausschluss der Zustandsverwaltung. Tablet-/Desktop-
+Gruppenansichten und Porträts in der Serverbibliothek sind hier noch nicht umgesetzt;
+vorhandene responsive Bibliothekskarten ersetzen keine Gruppenübersicht.
 
 ## App-Shell und Navigation
 
