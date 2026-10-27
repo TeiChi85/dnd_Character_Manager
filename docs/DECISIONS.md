@@ -1,20 +1,23 @@
 # Dauerhafte Entscheidungen
 
-Dies sind im Checkout belegte Architekturentscheidungen, keine neuen Beschlüsse
-dieser Dokumentationsbereinigung. Zeitangaben stammen aus Dokumenten bzw.
-Git-Historie; wo kein ursprüngliches Beschlussdatum belegt ist, steht das dabei.
+Diese Datei hält dauerhafte Entscheidungen mit Grund und Folgen fest.
+D1–D5 beschreiben belegte Architekturentscheidungen; D6 dokumentiert die
+verbindliche Produktfestlegung vom 27.10.2026. Zeitangaben stammen aus Dokumenten
+bzw. Git-Historie; wo kein ursprüngliches Beschlussdatum belegt ist, steht das dabei.
 Offene Regel-/Vertragsfragen sind [Aufgaben](tasks/CONTRACT_REVIEW.md), keine
 nachträglich legitimierten Entscheidungen.
 
 ## D1: Offline-Oberfläche ohne produktiven Build
 
 - **Einordnung:** aus der Upstream-Basis übernommen; ursprüngliches Datum unbekannt.
-- **Status:** umgesetzt, weiterhin gültig.
+- **Status:** umgesetzt; technischer Ansatz weiterhin gültig, Offline-Nutzung
+  gemäß D6 als Legacy-Kompatibilität erhalten.
 - **Entscheidung:** Vanilla HTML/CSS/JavaScript; Flask und Entwicklungswerkzeuge
   sind optional und getrennt von der Offline-Oberfläche.
 - **Grund:** lokaler Betrieb und einfacher Start ohne Paketinstallation.
 - **Folge:** kein Framework-/Build-Zwang; Datenbereitstellung bleibt separat.
-  Siehe [Einrichtung](../DEVELOPMENT.md).
+  Siehe [Einrichtung](../DEVELOPMENT.md). Der künftige Produktbetrieb verwendet
+  zentrale persistente Daten; Offline ist keine neue Produktanforderung.
 
 ## D2: v1-Dateiformat mit getrenntem View-State
 
@@ -58,4 +61,25 @@ nachträglich legitimierten Entscheidungen.
   private Vorversionen/Papierkorb; keine automatische Schreibwiederholung.
 - **Grund:** verlorene Updates und unbeabsichtigten Datenverlust begrenzen.
 - **Folge:** Konflikte explizit lösen, Wiederherstellung administrativ; Archive
-  auf demselben Datenträger ersetzen kein externes Backup. [Speicher](STORAGE_RECOVERY.md).
+  auf demselben Datenträger ersetzen kein externes Backup. Der vorhandene
+  JSON-Dateispeicher ist die geeignete Produktbasis; keine Festlegung auf SQLite
+  oder eine andere Datenbank ohne gesonderte Begründung oder Beauftragung.
+  [Speicher](STORAGE_RECOVERY.md).
+
+## D6: Privates D&D-2024-Produkt mit begrenzter Automatisierung
+
+- **Einordnung:** verbindlicher Produktauftrag vom 27.10.2026.
+- **Status:** Produktziel bestätigt; keine pauschale Implementierungsabnahme.
+- **Entscheidung:** [PROJECT.md](PROJECT.md) ist die zentrale Referenz für Vision,
+  Scope, Geräte, V1–V3-Prioritäten und Erfolgskriterien. D&D 2024 ist das alleinige
+  Zielregelwerk; 2014 und Offline bleiben technisch unangetastete Legacy-Kompatibilität.
+  Privater Gruppenbetrieb nutzt vorgeschalteten Zugriffsschutz, keine internen
+  Konten/Rollen. Der interaktive mobile Bogen hat höchste Entwicklungspriorität.
+- **Grund:** regelgenaues Spielen in einer kleinen privaten Gruppe bei geringer
+  technischer Komplexität und ressourcenarmem Betrieb auf Raspberry Pi 3B.
+- **Folge:** Ist, Soll und offene Arbeiten getrennt behandeln. Manuelle Zustände
+  gehören zum Produkt; genaue Zustands-/Effektautomatisierung separat eingrenzen.
+  Keine Vollautomatisierung aus der Vision ableiten. Technische Datenunterstützung
+  gewährt keine Nutzungs-/Weiterverbreitungsrechte. Bestehende UI-/Betriebsaufgaben
+  folgen den Produktprioritäten; dieser Beschluss beauftragt keinen Codeumbau,
+  keine Datenmigration und keine Netzwerkfreigabe.

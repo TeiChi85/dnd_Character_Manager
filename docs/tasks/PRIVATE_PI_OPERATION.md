@@ -1,13 +1,18 @@
 # Aufgabe: Sicherer privater Betrieb auf Raspberry Pi
 
-Status: offen. Bestätigte Zielrichtung aus dem Nutzerauftrag vom 25.10.2026;
+Status: offen. Zielrichtung vom 25.10.2026, durch die verbindliche
+[Produktdefinition](../PROJECT.md#6-technical-constraints) vom 27.10.2026 konkretisiert;
 keine Implementierungs- oder Netzwerkfreigabe durch den Dokumentations-PR.
 
 ## Ziel und Abgrenzung
 
 Gemeinsame Charakterbibliothek für den Nutzer und seine private D&D-Gruppe
-perspektivisch auf einem Raspberry Pi, sicher im Heimnetz und später von außen.
-Smartphone/Desktop, Offline-Nutzung und lokale JSON-Dateien erhalten.
+auf einem Raspberry Pi 3B, privat über LAN und später eine Domain mit
+vorgeschaltetem Zugriffsschutz. Typisch vier gleichzeitig verbundene Personen,
+maximale Zielgröße sieben Nutzer. Smartphone, Tablet und Desktop verwenden
+dieselben persistenten Daten; lokale Entwicklung/Ausführung unter Windows 11.
+JSON-Import/-Export erhalten; vorhandene Offline-Nutzung bleibt Legacy, keine
+verpflichtende neue Offlineunterstützung.
 Kein öffentliches Mehrmandantenprodukt; ein Obsidian-Web-Wiki auf demselben Pi
 bleibt ein benachbarter Dienst ohne abgeleitete Integration.
 
@@ -23,6 +28,9 @@ bleibt ein benachbarter Dienst ohne abgeleitete Integration.
 
 - Vor einer Freigabe sind berechtigte Nutzer/Zugriffswege, Schutzbedarf,
   Verantwortlichkeiten und Wiederherstellung nachvollziehbar festgelegt.
+  Zugriffsschutz liegt vor der Anwendung; keine internen Konten, Rollen oder
+  Berechtigungen einführen. Diese Betriebsprüfungen ersetzen nicht die zwei
+  bestätigten [MVP-Abnahmekriterien](../PROJECT.md#8-success-criteria).
 - Ein gesondert beauftragter Betrieb erlaubt der privaten Gruppe den vorgesehenen
   Zugriff aus dem Heimnetz, später von außen; unberechtigter Zugriff auf Charaktere,
   Archive, Konfiguration und Repository-Inhalte wird nachweisbar verhindert.
@@ -45,9 +53,13 @@ bleibt ein benachbarter Dienst ohne abgeleitete Integration.
 Der aktuelle Start bindet Loopback; Authentifizierung und geprüfte
 Netzwerkbereitstellung fehlen. Bestehende Revisionen und Archive ersetzen keinen
 Zugriffsschutz oder externes Backup. Deployment, Domain, Tunnel, VPN,
-Authentifizierung und ein mögliches Konten-/Rollenmodell sind nicht beschlossen.
-Pi-Umgebung, Zugriffsbedarf, Nutzerkreis, Backupziel und Betriebsverantwortung
-müssen vor einer konkreten Lösung geklärt werden. Keine Startbefehle aus alten
+vorgeschalteter Zugriffsschutz sind in ihrer konkreten technischen Umsetzung
+noch nicht beschlossen. Interne Benutzerverwaltung und Rollen sind ausgeschlossen.
+Das Modell Raspberry Pi 3B und die Zielgröße vier bis sieben Nutzer sind festgelegt;
+konkrete Pi-/Netzumgebung, Zugriffswege, Backupziel und Betriebsverantwortung
+müssen vor einer Lösung geklärt werden. Der vorhandene JSON-Dateispeicher mit
+Revisionen, Konflikterkennung und Backups ist die geeignete Ausgangsbasis;
+keine Datenbankmigration ohne gesonderte Begründung oder Beauftragung vorsehen. Keine Startbefehle aus alten
 Phasenplänen übernehmen und keine LAN-/Internetfreigabe vorwegnehmen.
 
 ## Übergabe

@@ -1,12 +1,16 @@
 # Aufgabe: Mobiler Builder
 
-Status: offen. Bestätigte Zielrichtung aus dem Nutzerauftrag vom 25.10.2026;
-keine Implementierungsfreigabe durch den Dokumentations-PR.
+Status: offen. Zielrichtung vom 25.10.2026, eingeordnet nach der verbindlichen
+[Produktdefinition](../PROJECT.md#7-delivery-priorities) vom 27.10.2026.
+Der interaktive mobile Charakterbogen hat Vorrang vor dieser verbleibenden
+Wizard-Gestaltung; keine Implementierungsfreigabe durch den Dokumentations-PR.
 
 ## Ziel und Abgrenzung
 
-Nach responsiver Bibliothek und Charakterbogen die bestehende Charaktererstellung
-für Smartphone und Desktop vollwertig bedienbar ausbauen, für D&D 2014 und 2024.
+Die bestehende Charaktererstellung für Smartphone, Tablet und Desktop
+vollwertig bedienbar ausbauen. Ziel sind D&D-2024-Einzelklassencharaktere gemäß
+MVP; vorhandene 2014-Funktionalität bleibt Legacy-Kompatibilität. Der bereits
+responsive Bogen gilt dadurch nicht als vollständig für das MVP abgenommen.
 Kein neues Regelwerk, Dateiformat, Framework oder beiläufiges Redesign.
 Offline-Nutzung, lokale JSON-Dateien und Bibliotheksanbindung erhalten.
 
@@ -21,7 +25,8 @@ Offline-Nutzung, lokale JSON-Dateien und Bibliotheksanbindung erhalten.
 ## Akzeptanzkriterien
 
 - Bestehende sieben Schritte einschließlich Übergang zum Bogen sind in beiden
-  Editionen auf den vorgesehenen Phone-/Tablet-/Desktop-Größen erreichbar.
+  Editionen auf den vorgesehenen Phone-/Tablet-/Desktop-Größen erreichbar
+  (2024 als Ziel, 2014 als Erhalt bestehender Kompatibilität).
   Zurück/Weiter erhält Eingaben, Auswahlgrenzen und abhängige Optionen.
 - Keine horizontale Gesamtscrollbewegung; lange Optionen, Bildschirmtastatur,
   Fokus und Touchflächen erfüllen die [UI-Abnahme](../UI_DESIGN_SPEC.md#10-ui-abnahmekriterien).
@@ -50,7 +55,8 @@ Verfügbare echte Android-/iPhone-Geräte für die manuelle Abnahme sind noch zu
 
 ## Übergabe
 
-Nächster konkreter Schritt: `creator.js` und die Wizard-Hosts schrittweise mit
+Nächster konkreter Schritt bei gesonderter Beauftragung nach Produktpriorität:
+`creator.js` und die Wizard-Hosts schrittweise mit
 Abschnitt 7 der Designspezifikation abgleichen und offene Layoutentscheidungen
 konkretisieren. Noch keine Implementierung oder Funktionsprüfung durchgeführt;
 gewöhnliche spätere Testergebnisse gehören in PR/CI.

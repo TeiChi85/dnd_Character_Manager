@@ -1,14 +1,21 @@
 # CharacterManager – UI Design Specification
 
 **Version:** 1.0 · **Basis:** CharacterManager UI-Spezifikation v0.3 (Word und Markdown, 23.10.2026)\
-**Geltungsbereich:** Responsive Weboberfläche für Android Chrome, iPhone Safari und Desktop-Browser.\
-**Designziel:** Eine eigenständige, an der Informationshierarchie und visuellen Dichte von D&D Beyond orientierte Charakterverwaltung für D&D 2014 und 2024.
+**Geltungsbereich:** Responsive Weboberfläche für Android Chrome, iPhone Safari, Tablet- und Desktop-Browser.\
+**Designziel:** Eine eigenständige, schlanke Charakterverwaltung für D&D 2024; D&D Beyond dient nur als Inspiration für Informationshierarchie, nicht als Funktionsziel. Vorhandene 2014-Ansichten bleiben Legacy-Kompatibilität.
 
 **Soll und Ist:** Diese Datei bleibt die maßgebliche gewünschte Gestaltung.
 Der bestätigte Implementierungsumfang und begründete Abweichungen stehen in
 [MOBILE_UI.md](MOBILE_UI.md#umfang-und-abgrenzung); insbesondere ist das mobile
 Wizard-Design noch nicht vollständig umgesetzt. Die folgenden Anforderungen
-werden durch diese Einordnung nicht geändert oder abgeschwächt.
+bleiben gestalterische Ziele. Produkt-Scope und Prioritäten bestimmt
+[PROJECT.md](PROJECT.md); die UI-Checks unten sind keine zusätzlichen bestätigten
+MVP-Abnahmeszenarien. Der interaktive mobile Bogen hat höchste Priorität.
+Smartphones dienen primär dem Spiel, Tablets (ca. 10 Zoll) der Gruppenübersicht
+und Regelrecherche, Desktops der kompakten Spielleiter-Gruppenübersicht und
+komfortablen Erstellung/Bearbeitung. Alle verwenden dieselben Daten und
+Berechnungen bei angepasster Informationsdichte; Gruppenansichten sind noch
+Produkt-Soll, keine hier belegte Umsetzung.
 
 ## 1. Gestaltungsprinzipien
 
@@ -122,7 +129,7 @@ Die mobile Abschnittsauswahl erfolgt vorzugsweise über einen zugänglichen Dial
 
 ### 3.4 Kontextmenü
 
-Auf Smartphones ein Dialog/Bottom Sheet mit maximal etwa 3–5 zentralen **tatsächlich vorhandenen** Aktionen, etwa Charakter bearbeiten/Level verwalten, Speichern, JSON-Export oder PDF-Export. Ausgeschlossene Scheinaktionen: *My Dice* ohne Würfelfunktion, nicht existierende Bearbeitung, nicht verfügbare Navigationsziele. Speichern, Export und Status ungespeicherter Änderungen müssen auffindbar bleiben.
+Auf Smartphones ein Dialog/Bottom Sheet mit maximal etwa 3–5 zentralen **tatsächlich vorhandenen** Aktionen, etwa Charakter bearbeiten/Level verwalten, Speichern, JSON-Export oder PDF-Export. Digitale Würfel einschließlich *My Dice* gehören nicht zum Produkt-Scope. Keine nicht existierende Bearbeitung oder nicht verfügbaren Navigationsziele anbieten. Speichern, Export und Status ungespeicherter Änderungen müssen auffindbar bleiben.
 
 ## 4. Wiederverwendbare UI-Komponenten
 
@@ -174,7 +181,7 @@ Komponenten dürfen lange Texte, leere Inhalte, schmale Bildschirme und große S
 - Standardaktionen, Bonusaktionen, Reaktionen und sonstige Aktionen in klar betitelte Gruppen unterteilen, **soweit die vorhandenen Daten die Zuordnung erlauben**.
 - Angriffszeilen zeigen Name, Typ, Reichweite, Trefferbonus beziehungsweise Save DC und Schadensformel. Notizen/Regeltexte sind aufklappbar.
 - Ressourcen-Tracker sind separat von der Aktion erkennbar und bedienbar. Tippen auf eine Informationszeile darf keine Ressource verbrauchen.
-- Keine Würfel-Schaltfläche ohne tatsächlich vorhandene Würfelfunktion.
+- Keine integrierten digitalen Würfel als Produktfunktion vorsehen; bestehende Roll-Hilfen werden durch diesen Dokumentationsauftrag nicht geändert.
 - Edition (2014/2024) und tatsächliche Charakterwerte bleiben nachvollziehbar.
 
 ### 6.4 Spells
@@ -239,7 +246,7 @@ Komponenten dürfen lange Texte, leere Inhalte, schmale Bildschirme und große S
 | **1. Class & Features** | Klassen-, Unterklassen-, Stufen- und Feature-Auswahl als touchfreundliche Optionen und hierarchische Detailgruppen. |
 | **2. Background & Details** | Hintergrund als Auswahlkarte; bestehende Charakter-/Detailfelder in klaren Formularabschnitten, narrative Langtexte nachgeordnet. |
 | **3. Species** | Species-/Lineage-Auswahl über Karten oder großzügige Selects, Zusatzinformationen aufklappbar. |
-| **4. Ability Scores** | Point Buy, Standard Array, Roll und Zuweisungen wie bisher; separate Attributkacheln/-zeilen mit nachvollziehbaren Basiswerten und Modifikatoren. |
+| **4. Ability Scores** | Point Buy, Standard Array und Zuweisungen mit nachvollziehbaren Basiswerten und Modifikatoren; vorhandenes Roll-Verhalten bleibt unverändert, ist aber keine künftige Würfelanforderung. |
 | **5. Equipment** | Startausrüstung, Alternativen, Gegenstandssuche und Währung als gruppierte mobile Karten; Menge und Auswahl erreichbar. |
 | **6. Spells** | Cantrips und Zauber mit Suche, Gradfiltern, gut bedienbaren Zeilen und eindeutigen Auswahlzuständen. |
 | **7. Character Sheet** | Übergang in die mobile Charakterbogenansicht mit allen getroffenen Entscheidungen. |
@@ -260,7 +267,7 @@ Beim Vor- und Zurücknavigieren bleiben getroffene Entscheidungen erhalten. Vorh
 
 **Darzustellen und bedienbar zu halten:** Alle bestehenden UI-Funktionen für Bibliothek, Creator, Charakterbogen, HP/Rast/Ressourcen, Zauber, Inventar, aktiven Effekten, Export und globales Theme, sofern in der tatsächlichen Anwendung vorhanden.
 
-**Nicht aus den Referenzen als neue Funktionen ableiten:** Würfel-FAB, neue Conditions-/Exhaustion-Verwaltung, persistente neue Notes-Felder, Party Inventory, Abschnittssortierung, zusätzliche Container-/Encumbrance-Regeln oder Dummy-Menüeinträge. Wenn solche Funktionen später eigenständig implementiert werden, können die entsprechenden Referenzmuster (Status-Checkboxen, Stufenauswahl, Notizgruppen) separat herangezogen werden; sie sind **nicht** Teil der UI-Designabnahme der bestehenden Anwendung.
+**Nicht aus den Referenzen als neue Funktionen ableiten:** Würfel-FAB, persistente neue Notes-Felder, Party Inventory, Abschnittssortierung, zusätzliche Container-/Encumbrance-Regeln oder Dummy-Menüeinträge. Digitale Würfel sind im Produkt ausgeschlossen. Manuelle Zustandsverwaltung gehört dagegen ausdrücklich zum [funktionalen Produkt-Scope](PROJECT.md#4-functional-scope); die genaue Automatisierung von Zuständen, Exhaustion und temporären Effekten muss gesondert spezifiziert werden. Daraus folgt kein unbegrenzter MVP-Automatisierungsauftrag und keine bereits implementierte neue UI. Status-Checkboxen, Stufenauswahl und andere Referenzmuster erst im jeweils beauftragten Funktionsumfang konkretisieren.
 
 ## 10. UI-Abnahmekriterien
 
@@ -280,7 +287,7 @@ Zusätzlich auf echten Android-Chrome- und iPhone-Safari-Geräten besonders Touc
 ### 10.2 Verbindliche UI-Checks
 
 1. **Keine horizontale Gesamtscrollbewegung** auf 320, 375, 390 und 430 px; keine verdeckten Hauptaktionen.
-2. **Wizard vollständig:** Alle sieben Schritte mit 2014-/2024-Charakteren bedienbar; Back/Continue, Optionen, Fehlermeldungen und Fortschritt sichtbar; keine verlorenen Eingaben.
+2. **Wizard vollständig:** Alle sieben Schritte für D&D 2024 bedienbar, vorhandene 2014-Kompatibilität erhalten; Back/Continue, Optionen, Fehlermeldungen und Fortschritt sichtbar; keine verlorenen Eingaben.
 3. **Charakterbogen vollständig:** Sechs Attribute, Saving Throws, 18 Skills und sämtliche tatsächlich verfügbaren Actions, Spells, Inventory-, Features-, Speed- und Defense-Inhalte auffindbar.
 4. **Spielaktionen:** HP, Rast, Ressourcen, Slots, Equipped/Attuned und weitere vorhandene Controls sind berührbar und verändern Werte ausschließlich nach bewusster Eingabe.
 5. **Bibliothek:** Öffnen, Neu anlegen, Speichern und Löschen einschließlich Bestätigung, Fehler- und Konfliktzuständen erreichbar.
